@@ -30,4 +30,8 @@ const Main = styled.main`
   width: 100%;
   margin: 0 auto;
   padding: ${({ theme }) => theme.ui.spacing.lg};
+
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.ui.spacing.md};
+  }
 `;

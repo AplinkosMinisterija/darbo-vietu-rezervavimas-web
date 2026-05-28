@@ -47,6 +47,12 @@ const Inner = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.ui.spacing.lg};
+
+  @media (max-width: 768px) {
+    padding: 0 ${({ theme }) => theme.ui.spacing.md};
+    gap: ${({ theme }) => theme.ui.spacing.sm};
+    height: 56px;
+  }
 `;
 
 const Brand = styled(Link)`
@@ -54,13 +60,26 @@ const Brand = styled(Link)`
   font-weight: 600;
   font-size: 18px;
   text-decoration: none;
+  white-space: nowrap;
   &:hover { text-decoration: none; }
+
+  @media (max-width: 768px) {
+    font-size: 15px;
+  }
 `;
 
 const Nav = styled.nav`
   display: flex;
   gap: ${({ theme }) => theme.ui.spacing.md};
   flex: 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+
+  @media (max-width: 768px) {
+    gap: ${({ theme }) => theme.ui.spacing.xs};
+  }
 `;
 
 const StyledNavLink = styled(NavLink)`
@@ -69,6 +88,7 @@ const StyledNavLink = styled(NavLink)`
   padding: ${({ theme }) => `${theme.ui.spacing.xs} ${theme.ui.spacing.sm}`};
   border-radius: ${({ theme }) => theme.ui.radiusSm};
   font-size: 14px;
+  white-space: nowrap;
 
   &:hover {
     color: #fff;
@@ -79,17 +99,31 @@ const StyledNavLink = styled(NavLink)`
     color: ${({ theme }) => theme.colors.brand};
     font-weight: 500;
   }
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+    padding: 4px 6px;
+  }
 `;
 
 const UserBox = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.ui.spacing.md};
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    gap: ${({ theme }) => theme.ui.spacing.xs};
+  }
 `;
 
 const UserName = styled.span`
   font-size: 14px;
   color: rgba(255, 255, 255, 0.9);
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const LogoutButton = styled.button`

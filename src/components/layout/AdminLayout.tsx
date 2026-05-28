@@ -28,6 +28,11 @@ const Wrapper = styled.div`
   grid-template-columns: 220px 1fr;
   gap: ${({ theme }) => theme.ui.spacing.lg};
   align-items: start;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: ${({ theme }) => theme.ui.spacing.md};
+  }
 `;
 
 const Sidebar = styled.aside`
@@ -38,6 +43,16 @@ const Sidebar = styled.aside`
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.ui.radius};
   padding: ${({ theme }) => theme.ui.spacing.md};
+
+  @media (max-width: 768px) {
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+    padding: ${({ theme }) => theme.ui.spacing.sm};
+    gap: ${({ theme }) => theme.ui.spacing.xs};
+  }
 `;
 
 const SidebarTitle = styled.h3`
@@ -46,6 +61,10 @@ const SidebarTitle = styled.h3`
   letter-spacing: 0.5px;
   color: ${({ theme }) => theme.colors.textMute};
   margin-bottom: ${({ theme }) => theme.ui.spacing.sm};
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const SidebarLink = styled(NavLink)`
@@ -65,6 +84,13 @@ const SidebarLink = styled(NavLink)`
     background: ${({ theme }) => theme.colors.brand};
     color: #fff;
   }
+
+  @media (max-width: 768px) {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 13px;
+    padding: 8px 12px;
+  }
 `;
 
 const Content = styled.section`
@@ -73,4 +99,9 @@ const Content = styled.section`
   border-radius: ${({ theme }) => theme.ui.radius};
   padding: ${({ theme }) => theme.ui.spacing.lg};
   min-height: 400px;
+  min-width: 0;
+
+  @media (max-width: 768px) {
+    padding: ${({ theme }) => theme.ui.spacing.md};
+  }
 `;
