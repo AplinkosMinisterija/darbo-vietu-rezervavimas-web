@@ -49,36 +49,59 @@ export default function MyRoomBanner({ user, rooms, reservations }: Props) {
     );
   }
 
-  const room = allowed.find((r) => !r.isShared) ?? allowed[0];
-  const reservedCount = reservations.filter((r) => r.roomId === room.id).length;
-  const free = room.deskCount - reservedCount;
-  const tone: BannerTone = free <= 0 ? 'danger' : 'success';
+  // Stack a banner per allowed cabinet. Sort so a user's own (non-shared)
+  // cabinet comes first, then any shared/group rooms below.
+  const sorted = [...allowed].sort((a, b) => {
+    if (a.isShared === b.isShared) return a.number.localeCompare(b.number);
+    return a.isShared ? 1 : -1;
+  });
+
+  const isSingle = sorted.length === 1;
 
   return (
-    <ClickableBanner
-      $tone={tone}
-      type="button"
-      onClick={() => navigate(`/rooms/${room.number}`)}
-      aria-label={`Atidaryti kabinetą ${room.number}`}
-    >
-      <Left>
-        <strong>Tavo kabinetas: {room.number}</strong>
-        {room.name && <RoomName>{room.name}</RoomName>}
-      </Left>
-      <Right>
-        {tone === 'danger' ? (
-          <span>Pilna — nėra laisvų vietų</span>
-        ) : (
-          <span>
-            {free === 1 ? '1 laisva vieta' : `${free} laisvos vietos`}
-            <Muted> / {room.deskCount}</Muted>
-          </span>
-        )}
-        <Chevron>→</Chevron>
-      </Right>
-    </ClickableBanner>
+    <Stack>
+      {sorted.map((room) => {
+        const reservedCount = reservations.filter((r) => r.roomId === room.id).length;
+        const free = room.deskCount - reservedCount;
+        const tone: BannerTone = free <= 0 ? 'danger' : 'success';
+        const label = isSingle ? 'Tavo kabinetas' : 'Tau prieinamas kabinetas';
+        return (
+          <ClickableBanner
+            key={room.id}
+            $tone={tone}
+            type="button"
+            onClick={() => navigate(`/rooms/${room.number}`)}
+            aria-label={`Atidaryti kabinetą ${room.number}`}
+          >
+            <Left>
+              <strong>
+                {label}: {room.number}
+              </strong>
+              {room.name && <RoomName>{room.name}</RoomName>}
+            </Left>
+            <Right>
+              {tone === 'danger' ? (
+                <span>Pilna — nėra laisvų vietų</span>
+              ) : (
+                <span>
+                  {free === 1 ? '1 laisva vieta' : `${free} laisvos vietos`}
+                  <Muted> / {room.deskCount}</Muted>
+                </span>
+              )}
+              <Chevron>→</Chevron>
+            </Right>
+          </ClickableBanner>
+        );
+      })}
+    </Stack>
   );
 }
+
+const Stack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.ui.spacing.sm};
+`;
 
 type BannerTone = 'success' | 'danger' | 'neutral';
 
