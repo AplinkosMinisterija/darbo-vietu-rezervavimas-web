@@ -14,6 +14,7 @@ import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
 import AdminRoomsPage from './pages/admin/AdminRoomsPage';
 import AdminReservationsPage from './pages/admin/AdminReservationsPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
+import EmergencyLoginPage from './pages/admin/EmergencyLoginPage';
 import { RoomsProvider } from './state/rooms';
 import { ToastProvider } from './components/Toast';
 
@@ -29,6 +30,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/admin/emergency-login" element={<EmergencyLoginPage />} />
 
       <Route
         element={
