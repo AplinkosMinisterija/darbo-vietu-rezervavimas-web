@@ -5,10 +5,13 @@ import { http } from '../../api/http';
 import { colors, ui } from '../../styles/theme';
 
 /**
- * Emergency admin login — bookmark-only route (`/admin/emergency-login`).
- * Used when Microsoft OAuth is unavailable. Hidden from the main UI.
+ * Admin login (username + password).
+ *
+ * Separate from the Microsoft OAuth flow (`/login`) used by regular @am.lt
+ * employees. Admins ALWAYS log in via this page — Microsoft accounts are
+ * treated as USER role regardless of email.
  */
-export default function EmergencyLoginPage() {
+export default function AdminLoginPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +23,7 @@ export default function EmergencyLoginPage() {
     setError(null);
     setBusy(true);
     try {
-      await http.post('/auth/emergency-login', { username, password });
+      await http.post('/auth/admin-login', { username, password });
       window.location.href = '/admin';
     } catch (err: any) {
       const msg = err?.response?.data?.message;
@@ -33,11 +36,10 @@ export default function EmergencyLoginPage() {
     <Page>
       <Card>
         <Header>
-          <Title>Emergency admin login</Title>
+          <Title>Administratoriaus prisijungimas</Title>
           <Subtitle>
-            Naudokis tik kai Microsoft OAuth nepasiekiamas.
-            <br />
-            <BackLink onClick={() => navigate('/login')}>← Į įprastą prisijungimą</BackLink>
+            Eilinis @am.lt darbuotojas — naudokis{' '}
+            <BackLink onClick={() => navigate('/login')}>Microsoft prisijungimu</BackLink>.
           </Subtitle>
         </Header>
 
@@ -119,8 +121,6 @@ const Subtitle = styled.div`
 `;
 
 const BackLink = styled.a`
-  display: inline-block;
-  margin-top: 4px;
   color: ${colors.brand};
   cursor: pointer;
   text-decoration: none;
