@@ -18,7 +18,7 @@ export default function NavBar() {
         <Nav>
           <StyledNavLink to="/" end>Pradžia</StyledNavLink>
           <StyledNavLink to="/mano">Mano rezervacijos</StyledNavLink>
-          <StyledNavLink to="/apzvalga">Apžvalga</StyledNavLink>
+          {isAdmin && <StyledNavLink to="/apzvalga">Apžvalga</StyledNavLink>}
           {isAdmin && <StyledNavLink to="/admin">Administravimas</StyledNavLink>}
         </Nav>
 
