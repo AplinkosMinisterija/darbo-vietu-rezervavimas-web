@@ -9,13 +9,18 @@ import RoomDetailPage from './pages/RoomDetailPage';
 import MyReservationsPage from './pages/MyReservationsPage';
 import StatsPage from './pages/StatsPage';
 import NotFoundPage from './pages/NotFoundPage';
-import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
+import AdminRoomsPage from './pages/admin/AdminRoomsPage';
+import AdminReservationsPage from './pages/admin/AdminReservationsPage';
+import AdminAuditPage from './pages/admin/AdminAuditPage';
 import { RoomsProvider } from './state/rooms';
 import { ToastProvider } from './components/Toast';
 
 /**
- * Routing skeleton. Phase 4 pridėjo /rooms/:nr, /mano, /apzvalga puslapius.
- * Admin pages (Phase 5) lieka placeholder'iuose.
+ * Routing skeleton. Phase 5 wire'ino real'ius admin pages (users, rooms,
+ * reservations, audit). `/admin` index'as default'ina į `/admin/users` —
+ * dažniausias entrypoint'as.
  *
  * RoomsProvider + ToastProvider wrap'inami tik authed sluoksnyje, kad
  * login puslapis neturėtų API call'ų.
@@ -49,12 +54,12 @@ export default function App() {
             </RequireAdmin>
           }
         >
-          <Route index element={<AdminPlaceholderPage />} />
-          <Route path="users" element={<AdminPlaceholderPage />} />
-          <Route path="users/:id" element={<AdminPlaceholderPage />} />
-          <Route path="rooms" element={<AdminPlaceholderPage />} />
-          <Route path="reservations" element={<AdminPlaceholderPage />} />
-          <Route path="audit" element={<AdminPlaceholderPage />} />
+          <Route index element={<AdminUsersPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="users/:id" element={<AdminUserDetailPage />} />
+          <Route path="rooms" element={<AdminRoomsPage />} />
+          <Route path="reservations" element={<AdminReservationsPage />} />
+          <Route path="audit" element={<AdminAuditPage />} />
         </Route>
       </Route>
 
