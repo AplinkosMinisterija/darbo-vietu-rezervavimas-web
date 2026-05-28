@@ -38,6 +38,14 @@ export default function RoomDetailPage() {
   const canAccessRoom = !!room && (allowedIds.has(room.id) || room.isShared);
   const isPast = isPastDate(selectedDate);
 
+  // User's existing reservation on `selectedDate` (any room, any desk). DB
+  // constraint UNIQUE(user_id, date) blocks a second one, but we surface it
+  // pre-click so the user sees why "+ rezervuoti" isn't there.
+  const myReservationToday = useMemo(
+    () => safeReservations.find((r) => user && r.user.id === user.id) ?? null,
+    [safeReservations, user],
+  );
+
   // Map<deskNumber, reservation> for greitam lookup'ui kortelėse.
   const byDesk = useMemo(() => {
     const map = new Map<number, (typeof safeReservations)[number]>();
@@ -111,6 +119,14 @@ export default function RoomDetailPage() {
         </Notice>
       )}
 
+      {myReservationToday && myReservationToday.roomId !== room.id && (
+        <InfoNotice>
+          Tu jau turi rezervaciją tai dienai kitoje patalpoje (vienas user'is — viena
+          vieta). Norėdamas rezervuoti čia — pirma{' '}
+          <NoticeLink to="/mano">atšauk esamą rezervaciją</NoticeLink>.
+        </InfoNotice>
+      )}
+
       {resLoading ? (
         <Muted>Kraunama rezervacijos…</Muted>
       ) : (
@@ -118,13 +134,17 @@ export default function RoomDetailPage() {
           {desks.map((dn) => {
             const r = byDesk.get(dn) ?? null;
             const isMine = !!(r && user && r.user.id === user.id);
+            // Block "+ rezervuoti" on free desks if user already has a
+            // reservation today (any room). They can still see free spots
+            // (informational) but can't claim a second one.
+            const userBlockedByExisting = !!myReservationToday && !isMine;
             return (
               <DeskCard
                 key={dn}
                 deskNumber={dn}
                 reservedBy={r ? r.user : null}
                 isMine={isMine}
-                canReserve={!isPast && canAccessRoom}
+                canReserve={!isPast && canAccessRoom && !userBlockedByExisting}
                 canCancel={!isPast}
                 onReserve={() => setReserveDesk(dn)}
                 onCancel={() => {
@@ -231,6 +251,21 @@ const Notice = styled.div`
   border-radius: ${({ theme }) => theme.ui.radius};
   color: #92400E;
   font-size: 14px;
+`;
+
+const InfoNotice = styled.div`
+  padding: ${({ theme }) => theme.ui.spacing.md};
+  background: #DBEAFE;
+  border: 1px solid #93C5FD;
+  border-radius: ${({ theme }) => theme.ui.radius};
+  color: #1E3A8A;
+  font-size: 14px;
+`;
+
+const NoticeLink = styled(Link)`
+  color: inherit;
+  text-decoration: underline;
+  font-weight: 500;
 `;
 
 const Grid = styled.div`
