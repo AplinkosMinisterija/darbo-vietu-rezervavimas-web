@@ -5,13 +5,20 @@ import AppLayout from './components/layout/AppLayout';
 import AdminLayout from './components/layout/AdminLayout';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
+import RoomDetailPage from './pages/RoomDetailPage';
+import MyReservationsPage from './pages/MyReservationsPage';
+import StatsPage from './pages/StatsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AdminPlaceholderPage from './pages/admin/AdminPlaceholderPage';
+import { RoomsProvider } from './state/rooms';
+import { ToastProvider } from './components/Toast';
 
 /**
- * Routing skeleton Phase 1-iui. Real'ūs Phase 4-5 puslapiai (RoomDetailPage,
- * MyReservationsPage, AdminUsersPage, ir t.t.) bus pridėti vėliau pagal
- * spec'o #7 skyrių.
+ * Routing skeleton. Phase 4 pridėjo /rooms/:nr, /mano, /apzvalga puslapius.
+ * Admin pages (Phase 5) lieka placeholder'iuose.
+ *
+ * RoomsProvider + ToastProvider wrap'inami tik authed sluoksnyje, kad
+ * login puslapis neturėtų API call'ų.
  */
 export default function App() {
   return (
@@ -21,11 +28,18 @@ export default function App() {
       <Route
         element={
           <RequireAuth>
-            <AppLayout />
+            <ToastProvider>
+              <RoomsProvider>
+                <AppLayout />
+              </RoomsProvider>
+            </ToastProvider>
           </RequireAuth>
         }
       >
         <Route path="/" element={<HomePage />} />
+        <Route path="/rooms/:nr" element={<RoomDetailPage />} />
+        <Route path="/mano" element={<MyReservationsPage />} />
+        <Route path="/apzvalga" element={<StatsPage />} />
 
         <Route
           path="/admin"
