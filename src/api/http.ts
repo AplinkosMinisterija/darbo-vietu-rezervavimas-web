@@ -14,10 +14,17 @@ export const http = axios.create({
   withCredentials: true,
 });
 
+// Pages where a 401 is expected (the user is on the login page) — do NOT
+// auto-redirect, the page will handle the error inline. Without this, the
+// useAuth() /me probe that fires on mount kicks the user off /admin/login
+// back to /login within ~1s.
+const PUBLIC_AUTH_PATHS = ['/login', '/admin/login'];
+
 http.interceptors.response.use(
   (resp) => resp,
   (err) => {
-    if (err?.response?.status === 401 && !window.location.pathname.startsWith('/login')) {
+    const onPublicAuthPage = PUBLIC_AUTH_PATHS.some((p) => window.location.pathname === p);
+    if (err?.response?.status === 401 && !onPublicAuthPage) {
       window.location.href = '/login';
     }
     return Promise.reject(err);
