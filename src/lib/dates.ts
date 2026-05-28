@@ -68,7 +68,12 @@ export const MONTH_NAMES_LT = [
   'Gruodis',
 ];
 
-export function humanDate(ymd: string): string {
-  const d = parseYmd(ymd);
-  return `${d.getDate()} ${MONTH_NAMES_LT[d.getMonth()].toLowerCase()} ${d.getFullYear()}`;
+export function humanDate(ymd: string | null | undefined): string {
+  if (!ymd) return '';
+  // Tolerate ISO datetime ("2026-05-28T00:00:00.000Z") — take the date part.
+  const dateOnly = String(ymd).slice(0, 10);
+  const d = parseYmd(dateOnly);
+  const monthIdx = d.getMonth();
+  if (Number.isNaN(monthIdx) || monthIdx < 0 || monthIdx > 11) return String(ymd);
+  return `${d.getDate()} ${MONTH_NAMES_LT[monthIdx].toLowerCase()} ${d.getFullYear()}`;
 }
