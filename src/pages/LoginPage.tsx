@@ -13,7 +13,7 @@ export default function LoginPage() {
   return (
     <Wrapper>
       <Card>
-        <Title>Stalų rezervavimas</Title>
+        <Title>Darbo vietų rezervavimas</Title>
         <Subtitle>Aplinkos ministerija</Subtitle>
 
         <LoginButton type="button" onClick={handleLogin}>

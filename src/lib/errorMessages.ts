@@ -6,10 +6,10 @@ import type { ReservationErrorCode } from '../types';
  * neatskleistų BE detalių, bet vis tiek leistų vartotojui retry'inti.
  */
 const MESSAGES: Record<ReservationErrorCode, string> = {
-  DESK_TAKEN: 'Šis stalas tą dieną jau rezervuotas — perskaityk iš naujo',
+  DESK_TAKEN: 'Ši darbo vieta tą dieną jau rezervuota — perskaityk iš naujo',
   USER_HAS_RESERVATION: 'Jau turi rezervaciją tai dienai',
   DATE_IN_PAST: 'Negalima rezervuoti praėjusiai datai',
-  INVALID_DESK_NUMBER: 'Stalo numeris neteisingas',
+  INVALID_DESK_NUMBER: 'Darbo vietos numeris neteisingas',
   NO_ROOM_ACCESS: 'Tu negali rezervuoti šioje patalpoje',
   CANNOT_CANCEL_PAST: 'Negalima atšaukti praėjusios rezervacijos',
 };
