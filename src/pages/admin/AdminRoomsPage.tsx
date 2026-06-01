@@ -62,13 +62,13 @@ export default function AdminRoomsPage() {
       return;
     }
     if (deskInput < 0 || !Number.isInteger(deskInput)) {
-      toast.error('Stalų skaičius turi būti ≥ 0');
+      toast.error('Darbo vietų skaičius turi būti ≥ 0');
       return;
     }
     setSavingDesk(true);
     try {
       await adminApi.rooms.update(r.id, { deskCount: deskInput });
-      toast.success('Stalų skaičius atnaujintas');
+      toast.success('Darbo vietų skaičius atnaujintas');
       await refetch();
       setEditingDesk(null);
     } catch (err) {
@@ -129,7 +129,7 @@ export default function AdminRoomsPage() {
                   <TR>
                     <TH>Numeris</TH>
                     <TH>Pavadinimas</TH>
-                    <TH>Stalų</TH>
+                    <TH>Darbo vietų</TH>
                     <TH>Bendra?</TH>
                     <TH></TH>
                   </TR>

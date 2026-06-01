@@ -25,10 +25,10 @@ const schema = Yup.object({
     .max(10, 'Aukštas turi būti 1-10')
     .required('Privaloma įvesti aukštą'),
   deskCount: Yup.number()
-    .typeError('Stalų skaičius turi būti skaičius')
-    .integer('Stalų skaičius turi būti sveikas skaičius')
-    .min(0, 'Stalų skaičius negali būti neigiamas')
-    .required('Privaloma įvesti stalų skaičių'),
+    .typeError('Darbo vietų skaičius turi būti skaičius')
+    .integer('Darbo vietų skaičius turi būti sveikas skaičius')
+    .min(0, 'Darbo vietų skaičius negali būti neigiamas')
+    .required('Privaloma įvesti darbo vietų skaičių'),
   isShared: Yup.boolean(),
 });
 
@@ -158,7 +158,7 @@ export default function CreateRoomModal({ open, onClose, onSuccess }: Props) {
           </Field>
 
           <Field>
-            <FieldLabel>Stalų skaičius *</FieldLabel>
+            <FieldLabel>Darbo vietų skaičius *</FieldLabel>
             <FieldInput
               type="number"
               name="deskCount"

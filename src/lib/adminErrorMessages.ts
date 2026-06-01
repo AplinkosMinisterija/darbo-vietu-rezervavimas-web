@@ -17,7 +17,7 @@ export type AdminErrorCode =
 const MESSAGES: Record<AdminErrorCode, string> = {
   NUMBER_TAKEN: 'Tokia patalpa jau registruota',
   DESK_HAS_FUTURE_RESERVATIONS:
-    'Stalai turi būsimas rezervacijas, atšaukite prieš mažinant deskCount',
+    'Darbo vietos turi būsimas rezervacijas, atšaukite prieš mažinant deskCount',
   ROOM_HAS_FUTURE_RESERVATIONS:
     'Yra būsimų rezervacijų, atšaukite prieš trindami patalpą',
   FORBIDDEN: 'Šį veiksmą gali atlikti tik administratorius',

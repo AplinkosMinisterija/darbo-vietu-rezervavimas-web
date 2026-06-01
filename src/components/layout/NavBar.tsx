@@ -13,7 +13,7 @@ export default function NavBar() {
   return (
     <Bar>
       <Inner>
-        <Brand to="/">Stalų rezervavimas</Brand>
+        <Brand to="/">Darbo vietų rezervavimas</Brand>
 
         <Nav>
           <StyledNavLink to="/" end>Pradžia</StyledNavLink>
