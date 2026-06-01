@@ -46,14 +46,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/rooms/:nr" element={<RoomDetailPage />} />
         <Route path="/mano" element={<MyReservationsPage />} />
-        <Route
-          path="/apzvalga"
-          element={
-            <RequireAdmin>
-              <StatsPage />
-            </RequireAdmin>
-          }
-        />
+        <Route path="/apzvalga" element={<StatsPage />} />
 
         <Route
           path="/admin"
