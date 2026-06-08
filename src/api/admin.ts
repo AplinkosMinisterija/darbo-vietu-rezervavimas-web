@@ -118,4 +118,29 @@ export const adminApi = {
       return data;
     },
   },
+  export: {
+    /**
+     * Atsiunčia .xlsx eksportą (vartotojai, patalpos, priskyrimai — keli
+     * sheet'ai). BE grąžina binarinį Buffer'į su `Content-Disposition`
+     * attachment; čia paimam blob'ą ir trigger'inam naršyklės download'ą.
+     * Failo vardą imam iš `Content-Disposition` (BE įdeda datą), su fallback.
+     */
+    async downloadXlsx(): Promise<void> {
+      const resp = await http.get('/export/xlsx', { responseType: 'blob' });
+      const cd = resp.headers['content-disposition'] as string | undefined;
+      const match = cd?.match(/filename="?([^"]+)"?/i);
+      const filename = match ? match[1] : 'darbo-vietu-eksportas.xlsx';
+
+      const url = window.URL.createObjectURL(resp.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Defer revoke — revoking synchronously right after click() can cancel
+      // the download on slower browsers before it commits.
+      setTimeout(() => window.URL.revokeObjectURL(url), 0);
+    },
+  },
 };

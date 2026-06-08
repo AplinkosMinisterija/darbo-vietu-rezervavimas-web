@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import styled from 'styled-components';
+import { adminApi } from '../../api/admin';
+import { useToast } from '../../components/Toast';
 
 /**
  * Admin shell — sidebar (kairėje) + outlet (dešinėje). Sidebar links
@@ -7,6 +10,22 @@ import styled from 'styled-components';
  * top nav bar'ą, tad čia tik vidinė admin srities navigacija.
  */
 export default function AdminLayout() {
+  const toast = useToast();
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      await adminApi.export.downloadXlsx();
+      toast.success('Eksportas atsisiųstas');
+    } catch {
+      toast.error('Nepavyko eksportuoti duomenų');
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <Wrapper>
       <Sidebar>
@@ -15,6 +34,9 @@ export default function AdminLayout() {
         <SidebarLink to="/admin/rooms">Patalpos</SidebarLink>
         <SidebarLink to="/admin/reservations">Rezervacijos</SidebarLink>
         <SidebarLink to="/admin/audit">Audit log</SidebarLink>
+        <ExportButton type="button" onClick={handleExport} disabled={exporting}>
+          {exporting ? 'Eksportuojama…' : 'Eksportuoti (Excel)'}
+        </ExportButton>
       </Sidebar>
       <Content>
         <Outlet />
@@ -86,6 +108,35 @@ const SidebarLink = styled(NavLink)`
   }
 
   @media (max-width: 768px) {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+`;
+
+const ExportButton = styled.button`
+  margin-top: ${({ theme }) => theme.ui.spacing.md};
+  padding: ${({ theme }) => `${theme.ui.spacing.sm} ${theme.ui.spacing.md}`};
+  border: 1px solid ${({ theme }) => theme.colors.brand};
+  border-radius: ${({ theme }) => theme.ui.radiusSm};
+  background: ${({ theme }) => theme.colors.brand};
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.95);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    margin-top: 0;
     white-space: nowrap;
     flex-shrink: 0;
     font-size: 13px;
