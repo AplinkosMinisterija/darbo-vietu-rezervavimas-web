@@ -21,8 +21,8 @@ const schema = Yup.object({
   floor: Yup.number()
     .typeError('Aukštas turi būti skaičius')
     .integer('Aukštas turi būti sveikas skaičius')
-    .min(1, 'Aukštas turi būti 1-10')
-    .max(10, 'Aukštas turi būti 1-10')
+    .min(0, 'Aukštas turi būti 0-10')
+    .max(10, 'Aukštas turi būti 0-10')
     .required('Privaloma įvesti aukštą'),
   deskCount: Yup.number()
     .typeError('Darbo vietų skaičius turi būti skaičius')
@@ -141,11 +141,11 @@ export default function CreateRoomModal({ open, onClose, onSuccess }: Props) {
 
         <Row>
           <Field>
-            <FieldLabel>Aukštas (1-10) *</FieldLabel>
+            <FieldLabel>Aukštas (0-10) *</FieldLabel>
             <FieldInput
               type="number"
               name="floor"
-              min={1}
+              min={0}
               max={10}
               value={formik.values.floor}
               onChange={formik.handleChange}
