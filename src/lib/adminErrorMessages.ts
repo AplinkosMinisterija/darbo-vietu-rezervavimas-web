@@ -16,7 +16,12 @@ export type AdminErrorCode =
   | 'EMAIL_TAKEN'
   | 'NAME_REQUIRED'
   | 'SELF_DELETE_FORBIDDEN'
-  | 'USER_NOT_FOUND';
+  | 'USER_NOT_FOUND'
+  | 'USER_HAS_RESERVATION'
+  | 'DESK_TAKEN'
+  | 'INVALID_DESK_NUMBER'
+  | 'DATE_IN_PAST'
+  | 'ROOM_NOT_FOUND';
 
 const MESSAGES: Record<AdminErrorCode, string> = {
   NUMBER_TAKEN: 'Tokia patalpa jau registruota',
@@ -31,6 +36,11 @@ const MESSAGES: Record<AdminErrorCode, string> = {
   NAME_REQUIRED: 'Vardas negali būti tuščias',
   SELF_DELETE_FORBIDDEN: 'Negalima ištrinti savo paskyros',
   USER_NOT_FOUND: 'Naudotojas nerastas',
+  USER_HAS_RESERVATION: 'Šis naudotojas jau turi rezervaciją tai dienai',
+  DESK_TAKEN: 'Ši darbo vieta tą dieną jau rezervuota',
+  INVALID_DESK_NUMBER: 'Tokios darbo vietos patalpoje nėra',
+  DATE_IN_PAST: 'Negalima rezervuoti praėjusiai datai',
+  ROOM_NOT_FOUND: 'Patalpa nerasta',
 };
 
 const GENERIC = 'Nepavyko atlikti veiksmo — pabandyk dar kartą';
