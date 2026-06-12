@@ -6,6 +6,7 @@ import { useToast } from '../../components/Toast';
 import { useRooms } from '../../state/rooms';
 import Modal, { DangerButton, PrimaryButton, SecondaryButton } from '../../components/Modal';
 import CreateRoomModal from '../../components/admin/CreateRoomModal';
+import EditRoomModal from '../../components/admin/EditRoomModal';
 import type { Room } from '../../types';
 import {
   Table,
@@ -19,6 +20,7 @@ import {
   PageTitle,
   EmptyState,
   Muted,
+  LinkButton,
   DangerLinkButton,
 } from './shared';
 
@@ -31,6 +33,7 @@ export default function AdminRoomsPage() {
   const toast = useToast();
   const { rooms, isLoading, refetch } = useRooms();
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Room | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Room | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [editingDesk, setEditingDesk] = useState<string | null>(null);
@@ -177,12 +180,17 @@ export default function AdminRoomsPage() {
                         </SharedToggle>
                       </TD>
                       <TD>
-                        <DangerLinkButton
-                          type="button"
-                          onClick={() => setDeleteTarget(r)}
-                        >
-                          Trinti
-                        </DangerLinkButton>
+                        <RowActions>
+                          <LinkButton type="button" onClick={() => setEditTarget(r)}>
+                            Redaguoti
+                          </LinkButton>
+                          <DangerLinkButton
+                            type="button"
+                            onClick={() => setDeleteTarget(r)}
+                          >
+                            Trinti
+                          </DangerLinkButton>
+                        </RowActions>
                       </TD>
                     </TR>
                   ))}
@@ -196,6 +204,13 @@ export default function AdminRoomsPage() {
       <CreateRoomModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+        onSuccess={() => void refetch()}
+      />
+
+      <EditRoomModal
+        open={editTarget !== null}
+        room={editTarget}
+        onClose={() => setEditTarget(null)}
         onSuccess={() => void refetch()}
       />
 
@@ -253,6 +268,12 @@ const FloorHeader = styled.h3`
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: ${({ theme }) => theme.colors.navy};
+`;
+
+const RowActions = styled.div`
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
 `;
 
 const DeskNumber = styled.button`

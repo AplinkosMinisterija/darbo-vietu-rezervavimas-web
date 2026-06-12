@@ -38,10 +38,16 @@ export interface CreateRoomInput {
 }
 
 export interface UpdateRoomInput {
+  number?: string;
   name?: string;
   floor?: number;
   deskCount?: number;
   isShared?: boolean;
+}
+
+export interface UpdateUserInput {
+  displayName?: string;
+  email?: string;
 }
 
 export interface UserListParams {
@@ -75,6 +81,13 @@ export const adminApi = {
     async get(id: string): Promise<User> {
       const { data } = await http.get<User>(`/users/${id}`);
       return data;
+    },
+    async update(id: string, input: UpdateUserInput): Promise<User> {
+      const { data } = await http.put<User>(`/users/${id}`, input);
+      return data;
+    },
+    async remove(id: string): Promise<void> {
+      await http.delete(`/users/${id}`);
     },
     async assignRooms(id: string, roomIds: string[]): Promise<User> {
       const { data } = await http.put<User>(`/users/${id}/rooms`, { roomIds });
