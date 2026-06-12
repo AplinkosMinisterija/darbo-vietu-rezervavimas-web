@@ -12,7 +12,11 @@ export type AdminErrorCode =
   | 'ROOM_HAS_FUTURE_RESERVATIONS'
   | 'FORBIDDEN'
   | 'CANNOT_DEMOTE_SELF'
-  | 'INVALID_ROOM_ID';
+  | 'INVALID_ROOM_ID'
+  | 'EMAIL_TAKEN'
+  | 'NAME_REQUIRED'
+  | 'SELF_DELETE_FORBIDDEN'
+  | 'USER_NOT_FOUND';
 
 const MESSAGES: Record<AdminErrorCode, string> = {
   NUMBER_TAKEN: 'Tokia patalpa jau registruota',
@@ -23,6 +27,10 @@ const MESSAGES: Record<AdminErrorCode, string> = {
   FORBIDDEN: 'Šį veiksmą gali atlikti tik administratorius',
   CANNOT_DEMOTE_SELF: 'Negali pažeminti save',
   INVALID_ROOM_ID: 'Neteisingas patalpos ID',
+  EMAIL_TAKEN: 'Toks el. paštas jau naudojamas',
+  NAME_REQUIRED: 'Vardas negali būti tuščias',
+  SELF_DELETE_FORBIDDEN: 'Negalima ištrinti savo paskyros',
+  USER_NOT_FOUND: 'Naudotojas nerastas',
 };
 
 const GENERIC = 'Nepavyko atlikti veiksmo — pabandyk dar kartą';

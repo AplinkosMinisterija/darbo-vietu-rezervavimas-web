@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { adminApi } from '../../api/admin';
 import { adminErrorMessage } from '../../lib/adminErrorMessages';
 import { useToast } from '../../components/Toast';
 import { useRooms } from '../../state/rooms';
 import { useAuth } from '../../state/auth';
-import { PrimaryButton, SecondaryButton } from '../../components/Modal';
+import Modal, { DangerButton, PrimaryButton, SecondaryButton } from '../../components/Modal';
 import type { User, UserRole, Room } from '../../types';
 import { PageHeader, PageTitle, Muted, RoleBadge } from './shared';
+
+/** Pragmatiškas el. pašto formatas — BE turi authoritative `type: 'email'`
+ *  validaciją; čia tik užkardome akivaizdžiai blogą įvestį prieš PUT. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Vienas vartotojas — keičiam allowed rooms (multi-checkbox per floor) ir
@@ -22,21 +26,28 @@ import { PageHeader, PageTitle, Muted, RoleBadge } from './shared';
  */
 export default function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const toast = useToast();
   const { user: meUser } = useAuth();
   const { rooms, isLoading: roomsLoading } = useRooms();
 
   const [user, setUser] = useState<User | null>(null);
   const [loadError, setLoadError] = useState<unknown>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [selectedRoomIds, setSelectedRoomIds] = useState<Set<string>>(new Set());
   const [selectedRole, setSelectedRole] = useState<UserRole>('USER');
   const [submitting, setSubmitting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     try {
       const u = await adminApi.users.get(id);
       setUser(u);
+      setName(u.displayName ?? '');
+      setEmail(u.email ?? '');
       setSelectedRoomIds(new Set(u.allowedRoomIds ?? []));
       setSelectedRole(u.role);
     } catch (e) {
@@ -66,7 +77,17 @@ export default function AdminUserDetailPage() {
 
   const roleChanged = user ? selectedRole !== user.role : false;
 
-  const hasChanges = roomsChanged || roleChanged;
+  const trimmedName = name.trim();
+  const trimmedEmail = email.trim();
+  const infoChanged = user
+    ? trimmedName !== (user.displayName ?? '') || trimmedEmail !== (user.email ?? '')
+    : false;
+
+  const nameError = trimmedName.length === 0 ? 'Vardas negali būti tuščias' : null;
+  const emailError = !EMAIL_RE.test(trimmedEmail) ? 'Neteisingas el. pašto formatas' : null;
+  const infoInvalid = infoChanged && (nameError !== null || emailError !== null);
+
+  const hasChanges = roomsChanged || roleChanged || infoChanged;
 
   const roomsByFloor = useMemo(() => {
     const grouped = new Map<number, Room[]>();
@@ -89,9 +110,20 @@ export default function AdminUserDetailPage() {
 
   async function handleSave() {
     if (!id || !user) return;
+    if (infoInvalid) {
+      toast.error(nameError ?? emailError ?? 'Patikrink įvestus duomenis');
+      return;
+    }
     setSubmitting(true);
     try {
       let nextUser = user;
+      // Identity first — only send the fields that actually changed.
+      if (infoChanged) {
+        nextUser = await adminApi.users.update(id, {
+          displayName: trimmedName !== (user.displayName ?? '') ? trimmedName : undefined,
+          email: trimmedEmail !== (user.email ?? '') ? trimmedEmail : undefined,
+        });
+      }
       if (roomsChanged) {
         nextUser = await adminApi.users.assignRooms(id, Array.from(selectedRoomIds));
       }
@@ -99,6 +131,8 @@ export default function AdminUserDetailPage() {
         nextUser = await adminApi.users.setRole(id, selectedRole);
       }
       setUser(nextUser);
+      setName(nextUser.displayName ?? '');
+      setEmail(nextUser.email ?? '');
       setSelectedRoomIds(new Set(nextUser.allowedRoomIds ?? []));
       setSelectedRole(nextUser.role);
       toast.success('Pakeitimai išsaugoti');
@@ -106,6 +140,20 @@ export default function AdminUserDetailPage() {
       toast.error(adminErrorMessage(err));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await adminApi.users.remove(id);
+      toast.success('Naudotojas ištrintas');
+      navigate('/admin/users');
+    } catch (err) {
+      toast.error(adminErrorMessage(err));
+      setDeleting(false);
+      setDeleteOpen(false);
     }
   }
 
@@ -138,20 +186,33 @@ export default function AdminUserDetailPage() {
 
       <Section>
         <SectionTitle>Vartotojo informacija</SectionTitle>
-        <InfoGrid>
-          <Label>Vardas</Label>
-          <Value>{user.displayName || '—'}</Value>
-          <Label>El. paštas</Label>
-          <Value>{user.email}</Value>
-          <Label>Rolė</Label>
-          <Value>{user.role}</Value>
-          {user.msObjectId && (
-            <>
-              <Label>MS Object ID</Label>
-              <Value $mono>{user.msObjectId}</Value>
-            </>
-          )}
-        </InfoGrid>
+        <Field>
+          <FieldLabel>Vardas, pavardė</FieldLabel>
+          <FieldInput
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={submitting}
+            placeholder="Vardas Pavardė"
+          />
+          {infoChanged && nameError && <FieldError>{nameError}</FieldError>}
+        </Field>
+        <Field>
+          <FieldLabel>El. paštas</FieldLabel>
+          <FieldInput
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={submitting}
+            placeholder="vardas.pavarde@am.lt"
+          />
+          {infoChanged && emailError && <FieldError>{emailError}</FieldError>}
+        </Field>
+        {user.msObjectId && (
+          <InfoGrid>
+            <Label>MS Object ID</Label>
+            <Value $mono>{user.msObjectId}</Value>
+          </InfoGrid>
+        )}
       </Section>
 
       <Section>
@@ -226,11 +287,57 @@ export default function AdminUserDetailPage() {
         <PrimaryButton
           type="button"
           onClick={handleSave}
-          disabled={!hasChanges || submitting}
+          disabled={!hasChanges || infoInvalid || submitting}
         >
           {submitting ? 'Saugoma…' : 'Išsaugoti'}
         </PrimaryButton>
       </Actions>
+
+      <DangerSection>
+        <DangerCopy>
+          <SectionTitle>Pavojinga zona</SectionTitle>
+          <Muted>
+            Ištrynus naudotoją jis paslepiamas iš sąrašų, o jo būsimos
+            rezervacijos atšaukiamos. Rezervacijų istorija išsaugoma. Jei žmogus
+            vėl prisijungs per Microsoft — paskyra atsistato.
+          </Muted>
+          {isSelf && <Hint>Negalima ištrinti savo paskyros.</Hint>}
+        </DangerCopy>
+        <DangerButton
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          disabled={isSelf || submitting}
+          title={isSelf ? 'Negalima ištrinti savo paskyros' : undefined}
+        >
+          Ištrinti naudotoją
+        </DangerButton>
+      </DangerSection>
+
+      <Modal
+        open={deleteOpen}
+        onClose={() => (deleting ? undefined : setDeleteOpen(false))}
+        title="Ištrinti naudotoją?"
+        footer={
+          <>
+            <SecondaryButton
+              type="button"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+            >
+              Atšaukti
+            </SecondaryButton>
+            <DangerButton type="button" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Trinama…' : 'Ištrinti'}
+            </DangerButton>
+          </>
+        }
+      >
+        <p>
+          Ar tikrai nori ištrinti naudotoją <b>{user.displayName || user.email}</b>?
+          Jo būsimos rezervacijos bus atšauktos, o istorija išsaugoma. Veiksmą
+          galima atstatyti — žmogui vėl prisijungus per Microsoft.
+        </p>
+      </Modal>
     </Wrapper>
   );
 }
@@ -359,4 +466,55 @@ const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: ${({ theme }) => theme.ui.spacing.sm};
+`;
+
+const Field = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const FieldLabel = styled.label`
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.textMute};
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+`;
+
+const FieldInput = styled.input`
+  padding: 8px 10px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.ui.radiusSm};
+  font-size: 14px;
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.brand};
+  }
+  &:disabled {
+    background: ${({ theme }) => theme.colors.bg};
+  }
+`;
+
+const FieldError = styled.span`
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.danger};
+`;
+
+const DangerSection = styled.section`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.ui.spacing.md};
+  flex-wrap: wrap;
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.danger};
+  border-radius: ${({ theme }) => theme.ui.radius};
+  padding: ${({ theme }) => theme.ui.spacing.md};
+`;
+
+const DangerCopy = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 560px;
 `;
