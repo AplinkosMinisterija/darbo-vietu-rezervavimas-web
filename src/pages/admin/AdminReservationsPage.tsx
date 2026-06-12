@@ -5,7 +5,8 @@ import { adminErrorMessage } from '../../lib/adminErrorMessages';
 import { reservationErrorMessage } from '../../lib/errorMessages';
 import { useToast } from '../../components/Toast';
 import { useRooms } from '../../state/rooms';
-import Modal, { DangerButton, SecondaryButton } from '../../components/Modal';
+import Modal, { DangerButton, PrimaryButton, SecondaryButton } from '../../components/Modal';
+import AssignReservationModal from '../../components/admin/AssignReservationModal';
 import { humanDate } from '../../lib/dates';
 import {
   Table,
@@ -59,6 +60,7 @@ export default function AdminReservationsPage() {
 
   const [cancelTarget, setCancelTarget] = useState<AdminReservation | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
 
@@ -151,6 +153,9 @@ export default function AdminReservationsPage() {
     <Wrapper>
       <PageHeader>
         <PageTitle>Rezervacijos</PageTitle>
+        <PrimaryButton type="button" onClick={() => setAssignOpen(true)}>
+          + Priskirti rezervaciją
+        </PrimaryButton>
       </PageHeader>
 
       <FilterBar>
@@ -258,6 +263,12 @@ export default function AdminReservationsPage() {
           </Pagination>
         </>
       )}
+
+      <AssignReservationModal
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        onSuccess={() => void load()}
+      />
 
       <Modal
         open={cancelTarget !== null}

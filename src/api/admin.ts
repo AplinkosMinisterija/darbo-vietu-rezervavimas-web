@@ -65,6 +65,13 @@ export interface ReservationListParams {
   offset?: number;
 }
 
+export interface AssignReservationInput {
+  userId: string;
+  roomId: string;
+  deskNumber: number;
+  date: string;
+}
+
 export interface AuditListParams {
   action?: string;
   userId?: string;
@@ -130,6 +137,10 @@ export const adminApi = {
     },
     async cancel(id: string): Promise<void> {
       await http.delete(`/reservations/${id}`);
+    },
+    async assign(input: AssignReservationInput): Promise<AdminReservation> {
+      const { data } = await http.post<AdminReservation>('/reservations/assign', input);
+      return data;
     },
   },
   audit: {
