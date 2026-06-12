@@ -72,6 +72,13 @@ export interface AuditListParams {
   offset?: number;
 }
 
+export interface SharePointStatus {
+  /** Ar įjungtas savaitinis automatinis rezervavimo cron'as (admin jungiklis). */
+  enabled: boolean;
+  /** Ar SharePoint integracija sukonfigūruota (SHAREPOINT_* env). */
+  configured: boolean;
+}
+
 export const adminApi = {
   users: {
     async list(params: UserListParams = {}): Promise<PaginatedResponse<User>> {
@@ -128,6 +135,16 @@ export const adminApi = {
   audit: {
     async list(params: AuditListParams = {}): Promise<PaginatedResponse<AuditEntry>> {
       const { data } = await http.get<PaginatedResponse<AuditEntry>>('/audit', { params });
+      return data;
+    },
+  },
+  sharepoint: {
+    async status(): Promise<SharePointStatus> {
+      const { data } = await http.get<SharePointStatus>('/sharepointSync/status');
+      return data;
+    },
+    async setEnabled(enabled: boolean): Promise<SharePointStatus> {
+      const { data } = await http.post<SharePointStatus>('/sharepointSync/enabled', { enabled });
       return data;
     },
   },

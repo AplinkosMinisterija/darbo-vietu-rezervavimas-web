@@ -14,6 +14,7 @@ import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
 import AdminRoomsPage from './pages/admin/AdminRoomsPage';
 import AdminReservationsPage from './pages/admin/AdminReservationsPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
+import AdminIntegrationPage from './pages/admin/AdminIntegrationPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import { RoomsProvider } from './state/rooms';
 import { ToastProvider } from './components/Toast';
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="rooms" element={<AdminRoomsPage />} />
           <Route path="reservations" element={<AdminReservationsPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
+          <Route path="integracija" element={<AdminIntegrationPage />} />
         </Route>
       </Route>
 

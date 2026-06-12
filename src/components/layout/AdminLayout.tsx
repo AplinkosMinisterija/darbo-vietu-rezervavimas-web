@@ -34,6 +34,7 @@ export default function AdminLayout() {
         <SidebarLink to="/admin/rooms">Patalpos</SidebarLink>
         <SidebarLink to="/admin/reservations">Rezervacijos</SidebarLink>
         <SidebarLink to="/admin/audit">Audit log</SidebarLink>
+        <SidebarLink to="/admin/integracija">Integracijos</SidebarLink>
         <ExportButton type="button" onClick={handleExport} disabled={exporting}>
           {exporting ? 'Eksportuojama…' : 'Eksportuoti (Excel)'}
         </ExportButton>
