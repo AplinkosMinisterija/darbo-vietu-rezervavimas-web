@@ -65,7 +65,7 @@ export default function App() {
           <Route path="users/:id" element={<AdminUserDetailPage />} />
           <Route path="rooms" element={<AdminRoomsPage />} />
           <Route path="reservations" element={<AdminReservationsPage />} />
-          <Route path="manageriai" element={<AdminManagersPage />} />
+          <Route path="vadovai" element={<AdminManagersPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
           <Route path="integracija" element={<AdminIntegrationPage />} />
         </Route>
