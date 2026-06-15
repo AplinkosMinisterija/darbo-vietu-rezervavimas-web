@@ -8,11 +8,13 @@ import HomePage from './pages/HomePage';
 import RoomDetailPage from './pages/RoomDetailPage';
 import MyReservationsPage from './pages/MyReservationsPage';
 import StatsPage from './pages/StatsPage';
+import ManagerPage from './pages/admin/ManagerPage';
 import NotFoundPage from './pages/NotFoundPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminUserDetailPage from './pages/admin/AdminUserDetailPage';
 import AdminRoomsPage from './pages/admin/AdminRoomsPage';
 import AdminReservationsPage from './pages/admin/AdminReservationsPage';
+import AdminManagersPage from './pages/admin/AdminManagersPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
 import AdminIntegrationPage from './pages/admin/AdminIntegrationPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
@@ -48,6 +50,7 @@ export default function App() {
         <Route path="/rooms/:nr" element={<RoomDetailPage />} />
         <Route path="/mano" element={<MyReservationsPage />} />
         <Route path="/apzvalga" element={<StatsPage />} />
+        <Route path="/manageris" element={<ManagerPage />} />
 
         <Route
           path="/admin"
@@ -62,6 +65,7 @@ export default function App() {
           <Route path="users/:id" element={<AdminUserDetailPage />} />
           <Route path="rooms" element={<AdminRoomsPage />} />
           <Route path="reservations" element={<AdminReservationsPage />} />
+          <Route path="manageriai" element={<AdminManagersPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
           <Route path="integracija" element={<AdminIntegrationPage />} />
         </Route>

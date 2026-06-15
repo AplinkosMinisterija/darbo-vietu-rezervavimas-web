@@ -72,6 +72,26 @@ export interface AssignReservationInput {
   date: string;
 }
 
+export interface RoomMember {
+  id: string;
+  displayName: string;
+  email: string;
+}
+
+export interface RoomReservation {
+  id: string;
+  deskNumber: number;
+  date: string;
+  user: { id: string; displayName: string };
+}
+
+export interface RoomManagerRow {
+  id: string;
+  source: 'auto' | 'manual';
+  room: { id: string; number: string; name: string };
+  user: { id: string; displayName: string; email: string };
+}
+
 export interface AuditListParams {
   action?: string;
   userId?: string;
@@ -124,6 +144,24 @@ export const adminApi = {
     async remove(id: string): Promise<void> {
       await http.delete(`/rooms/${id}`);
     },
+    // --- room-scoped management (admin OR room manager) ---
+    async members(id: string): Promise<RoomMember[]> {
+      const { data } = await http.get<RoomMember[]>(`/rooms/${id}/members`);
+      return data;
+    },
+    async addMember(id: string, userId: string): Promise<void> {
+      await http.post(`/rooms/${id}/members`, { userId });
+    },
+    async removeMember(id: string, userId: string): Promise<void> {
+      await http.delete(`/rooms/${id}/members/${userId}`);
+    },
+    async reservations(
+      id: string,
+      params: { dateFrom?: string; dateTo?: string } = {},
+    ): Promise<RoomReservation[]> {
+      const { data } = await http.get<RoomReservation[]>(`/rooms/${id}/reservations`, { params });
+      return data;
+    },
   },
   reservations: {
     async listAll(
@@ -146,6 +184,39 @@ export const adminApi = {
   audit: {
     async list(params: AuditListParams = {}): Promise<PaginatedResponse<AuditEntry>> {
       const { data } = await http.get<PaginatedResponse<AuditEntry>>('/audit', { params });
+      return data;
+    },
+  },
+  managers: {
+    async list(roomId?: string): Promise<RoomManagerRow[]> {
+      const { data } = await http.get<RoomManagerRow[]>('/roomManagers', {
+        params: roomId ? { roomId } : {},
+      });
+      return data;
+    },
+    async add(userId: string, roomId: string): Promise<void> {
+      await http.post('/roomManagers', { userId, roomId });
+    },
+    async remove(id: string): Promise<void> {
+      await http.delete(`/roomManagers/${id}`);
+    },
+    async sync(): Promise<{ autoManagersSet: number; manualKept: number; unmatchedUsers: string[] }> {
+      const { data } = await http.post('/roomManagers/sync');
+      return data;
+    },
+    async preview(): Promise<{
+      leadersOnPage: number;
+      rows: Array<{ email: string; matchedUser: boolean; rooms: string[] }>;
+    }> {
+      const { data } = await http.get('/roomManagers/preview');
+      return data;
+    },
+    async status(): Promise<{ enabled: boolean }> {
+      const { data } = await http.get('/roomManagers/status');
+      return data;
+    },
+    async setEnabled(enabled: boolean): Promise<{ enabled: boolean }> {
+      const { data } = await http.post('/roomManagers/enabled', { enabled });
       return data;
     },
   },

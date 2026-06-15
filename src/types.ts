@@ -12,6 +12,8 @@ export interface User {
   msObjectId?: string | null;
   /** UUID's — Phase 4 backend grąžina `allowedRoomIds`. */
   allowedRoomIds?: string[];
+  /** Patalpų, kurias šis vartotojas VALDO (manageris), id'ai. Tuščia = ne manageris. */
+  managedRoomIds?: string[];
   /** Legacy / placeholder forma — palikta backward compat'ui, jei
    * scaffold'as kažkur returnino expanded objektus. */
   allowedRooms?: Array<{ id: string; number: string; name?: string; floor?: number }>;
