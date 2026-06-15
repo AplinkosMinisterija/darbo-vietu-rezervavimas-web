@@ -26,7 +26,11 @@ export default function MyRoomBanner({ user, rooms, reservations }: Props) {
   if (!user) return null;
 
   const ids = user.allowedRoomIds ?? [];
-  if (ids.length === 0) {
+  // Accessible = the user's assigned cabinets PLUS every shared room — a shared
+  // room (e.g. 309 "Rezervuojamos darbo vietos") is bookable by everyone, so it
+  // shows as a card for all users regardless of assignment.
+  const accessible = rooms.filter((r) => ids.includes(r.id) || r.isShared);
+  if (accessible.length === 0) {
     return (
       <StaticBanner $tone="neutral">
         <Left>
@@ -37,21 +41,9 @@ export default function MyRoomBanner({ user, rooms, reservations }: Props) {
     );
   }
 
-  const allowed = rooms.filter((r) => ids.includes(r.id));
-  if (allowed.length === 0) {
-    return (
-      <StaticBanner $tone="neutral">
-        <Left>
-          <strong>Tavo kabinetas nenustatytas</strong>
-          <RoomName>Tau priskirtos patalpos šiuo metu neprieinamos.</RoomName>
-        </Left>
-      </StaticBanner>
-    );
-  }
-
-  // Stack a banner per allowed cabinet. Sort so a user's own (non-shared)
+  // Stack a banner per accessible cabinet. Sort so a user's own (non-shared)
   // cabinet comes first, then any shared/group rooms below.
-  const sorted = [...allowed].sort((a, b) => {
+  const sorted = [...accessible].sort((a, b) => {
     if (a.isShared === b.isShared) return a.number.localeCompare(b.number);
     return a.isShared ? 1 : -1;
   });
