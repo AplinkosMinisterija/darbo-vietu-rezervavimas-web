@@ -89,15 +89,19 @@ export default function AdminUserDetailPage() {
 
   const hasChanges = roomsChanged || roleChanged || infoChanged;
 
+  // Shared rooms (e.g. 309) are bookable by everyone, so there is nothing to
+  // assign — exclude them from the assignment checkboxes.
+  const assignableRooms = useMemo(() => rooms.filter((r) => !r.isShared), [rooms]);
+
   const roomsByFloor = useMemo(() => {
     const grouped = new Map<number, Room[]>();
-    for (const r of rooms) {
+    for (const r of assignableRooms) {
       const list = grouped.get(r.floor) ?? [];
       list.push(r);
       grouped.set(r.floor, list);
     }
     return Array.from(grouped.entries()).sort(([a], [b]) => a - b);
-  }, [rooms]);
+  }, [assignableRooms]);
 
   function toggleRoom(id: string) {
     setSelectedRoomIds((curr) => {
@@ -249,7 +253,7 @@ export default function AdminUserDetailPage() {
 
       <Section>
         <SectionTitle>
-          Leidžiamos patalpos ({selectedRoomIds.size} / {rooms.length})
+          Leidžiamos patalpos ({selectedRoomIds.size} / {assignableRooms.length})
         </SectionTitle>
         {roomsByFloor.length === 0 ? (
           <Muted>Patalpų sąraše dar nieko nėra.</Muted>
