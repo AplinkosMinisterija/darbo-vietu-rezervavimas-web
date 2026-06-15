@@ -50,7 +50,7 @@ export default function App() {
         <Route path="/rooms/:nr" element={<RoomDetailPage />} />
         <Route path="/mano" element={<MyReservationsPage />} />
         <Route path="/apzvalga" element={<StatsPage />} />
-        <Route path="/manageris" element={<ManagerPage />} />
+        <Route path="/patalpu-administravimas" element={<ManagerPage />} />
 
         <Route
           path="/admin"
