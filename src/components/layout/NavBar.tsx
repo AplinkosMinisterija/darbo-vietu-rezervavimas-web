@@ -9,6 +9,7 @@ import { useAuth } from '../../state/auth';
  */
 export default function NavBar() {
   const { user, isAdmin, logout } = useAuth();
+  const isManager = !!user?.managedRoomIds && user.managedRoomIds.length > 0;
 
   return (
     <Bar>
@@ -19,6 +20,7 @@ export default function NavBar() {
           <StyledNavLink to="/" end>Pradžia</StyledNavLink>
           <StyledNavLink to="/mano">Mano rezervacijos</StyledNavLink>
           <StyledNavLink to="/apzvalga">Apžvalga</StyledNavLink>
+          {isManager && <StyledNavLink to="/manageris">Manageris</StyledNavLink>}
           {isAdmin && <StyledNavLink to="/admin">Administravimas</StyledNavLink>}
         </Nav>
 
