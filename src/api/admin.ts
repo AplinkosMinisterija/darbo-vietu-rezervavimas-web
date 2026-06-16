@@ -72,6 +72,23 @@ export interface AssignReservationInput {
   date: string;
 }
 
+export interface RecurringReservationInput {
+  userId: string;
+  roomId: string;
+  /** Optional fixed desk; omit to auto-pick the lowest free desk each day. */
+  deskNumber?: number;
+  /** ISO weekdays: 1=Mon … 5=Fri. */
+  weekdays: number[];
+  /** How many weeks ahead to materialise. */
+  weeks: number;
+}
+
+export interface RecurringResult {
+  created: number;
+  skippedExisting: number;
+  noDesk: number;
+}
+
 export interface RoomMember {
   id: string;
   displayName: string;
@@ -178,6 +195,10 @@ export const adminApi = {
     },
     async assign(input: AssignReservationInput): Promise<AdminReservation> {
       const { data } = await http.post<AdminReservation>('/reservations/assign', input);
+      return data;
+    },
+    async assignRecurring(input: RecurringReservationInput): Promise<RecurringResult> {
+      const { data } = await http.post<RecurringResult>('/reservations/assign-recurring', input);
       return data;
     },
   },
