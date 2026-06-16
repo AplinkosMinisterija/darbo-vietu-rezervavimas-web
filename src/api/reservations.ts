@@ -7,6 +7,19 @@ export interface CreateReservationInput {
   date: string;
 }
 
+export interface ReserveRecurringInput {
+  roomId: string;
+  /** ISO weekdays: 1=Mon … 5=Fri. */
+  weekdays: number[];
+  /** How many weeks ahead to materialise. */
+  weeks: number;
+}
+
+export interface ReserveRecurringResult {
+  created: number;
+  dates: string[];
+}
+
 /**
  * Reservations API — visi server calls'ai per axios `http` instance'ą su
  * `withCredentials: true`. Error mapping'as paliktas component'ams; čia
@@ -27,6 +40,14 @@ export const reservationsApi = {
 
   async create(input: CreateReservationInput): Promise<Reservation> {
     const { data } = await http.post<Reservation>('/reservations', input);
+    return data;
+  },
+
+  async reserveRecurring(input: ReserveRecurringInput): Promise<ReserveRecurringResult> {
+    const { data } = await http.post<ReserveRecurringResult>(
+      '/reservations/reserve-recurring',
+      input,
+    );
     return data;
   },
 

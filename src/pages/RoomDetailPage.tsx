@@ -5,6 +5,7 @@ import WeekStrip from '../components/WeekStrip';
 import MonthCalendar from '../components/MonthCalendar';
 import DeskCard from '../components/DeskCard';
 import ReserveModal from '../components/ReserveModal';
+import ReserveRecurringModal from '../components/ReserveRecurringModal';
 import CancelModal from '../components/CancelModal';
 import { useAuth } from '../state/auth';
 import { useRooms } from '../state/rooms';
@@ -18,6 +19,8 @@ import { humanDate, isPastDate, todayYmd } from '../lib/dates';
  *   - DeskGrid generuojamas iš `room.deskCount` (numeravimas 1..N).
  *   - canReserve = ne praeities data + (allowedRoom arba isShared).
  *   - canCancel = ne praeities data ir rezervacija mano.
+ *   - Pasikartojanti rezervacija (savaitės dienomis) — prieinama bet kuriam,
+ *     kas gali rezervuoti šioje patalpoje; nepriklauso nuo pasirinktos datos.
  */
 export default function RoomDetailPage() {
   const { nr = '' } = useParams<{ nr: string }>();
@@ -27,6 +30,7 @@ export default function RoomDetailPage() {
 
   const [selectedDate, setSelectedDate] = useState<string>(todayYmd());
   const [calOpen, setCalOpen] = useState(false);
+  const [recurringOpen, setRecurringOpen] = useState(false);
 
   const { data: reservations, isLoading: resLoading, invalidate } =
     useReservations(selectedDate);
@@ -111,7 +115,14 @@ export default function RoomDetailPage() {
         onSelect={setSelectedDate}
       />
 
-      <DateLabel>{humanDate(selectedDate)}</DateLabel>
+      <DateRow>
+        <DateLabel>{humanDate(selectedDate)}</DateLabel>
+        {canAccessRoom && (
+          <RecurringButton type="button" onClick={() => setRecurringOpen(true)}>
+            🔁 Rezervuoti pasikartojančiai
+          </RecurringButton>
+        )}
+      </DateRow>
 
       {!canAccessRoom && (
         <Notice>
@@ -171,6 +182,13 @@ export default function RoomDetailPage() {
         onSuccess={invalidate}
       />
 
+      <ReserveRecurringModal
+        open={recurringOpen}
+        onClose={() => setRecurringOpen(false)}
+        room={room}
+        onSuccess={invalidate}
+      />
+
       <CancelModal
         open={cancelTarget !== null}
         onClose={() => setCancelTarget(null)}
@@ -227,6 +245,8 @@ const SubName = styled.span`
 const DateRow = styled.div`
   display: flex;
   gap: ${({ theme }) => theme.ui.spacing.sm};
+  align-items: center;
+  flex-wrap: wrap;
 `;
 
 const CalToggle = styled.button`
@@ -242,6 +262,20 @@ const DateLabel = styled.div`
   font-size: 15px;
   font-weight: 500;
   color: ${({ theme }) => theme.colors.navy};
+  flex: 1;
+`;
+
+const RecurringButton = styled.button`
+  background: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.brand};
+  border-radius: ${({ theme }) => theme.ui.radius};
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.brand};
+  cursor: pointer;
+  white-space: nowrap;
+  &:hover { background: ${({ theme }) => theme.colors.bg}; }
 `;
 
 const Notice = styled.div`
