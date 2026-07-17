@@ -3,6 +3,15 @@ import { NavLink, Outlet } from 'react-router-dom';
 import styled from 'styled-components';
 import { adminApi } from '../../api/admin';
 import { useToast } from '../../components/Toast';
+import { todayYmd } from '../../lib/dates';
+
+type OccupancyPeriod = 'day' | 'week' | 'month';
+
+const PERIOD_LABELS: Record<OccupancyPeriod, string> = {
+  day: 'Diena',
+  week: 'Savaitė',
+  month: 'Mėnuo',
+};
 
 /**
  * Admin shell — sidebar (kairėje) + outlet (dešinėje). Sidebar links
@@ -12,6 +21,9 @@ import { useToast } from '../../components/Toast';
 export default function AdminLayout() {
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
+  const [occPeriod, setOccPeriod] = useState<OccupancyPeriod>('month');
+  const [occDate, setOccDate] = useState<string>(todayYmd());
+  const [occExporting, setOccExporting] = useState(false);
 
   async function handleExport() {
     if (exporting) return;
@@ -23,6 +35,19 @@ export default function AdminLayout() {
       toast.error('Nepavyko eksportuoti duomenų');
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleOccupancyExport() {
+    if (occExporting) return;
+    setOccExporting(true);
+    try {
+      await adminApi.export.downloadOccupancyXlsx(occPeriod, occDate);
+      toast.success('Užimtumo ataskaita atsisiųsta');
+    } catch {
+      toast.error('Nepavyko eksportuoti užimtumo');
+    } finally {
+      setOccExporting(false);
     }
   }
 
@@ -39,6 +64,46 @@ export default function AdminLayout() {
         <ExportButton type="button" onClick={handleExport} disabled={exporting}>
           {exporting ? 'Eksportuojama…' : 'Eksportuoti (Excel)'}
         </ExportButton>
+
+        <OccupancyBox>
+          <OccupancyTitle>Užimtumo eksportas</OccupancyTitle>
+          <OccupancyField>
+            <label htmlFor="occ-period">Periodas</label>
+            <select
+              id="occ-period"
+              value={occPeriod}
+              onChange={(e) => setOccPeriod(e.target.value as OccupancyPeriod)}
+            >
+              {(Object.keys(PERIOD_LABELS) as OccupancyPeriod[]).map((p) => (
+                <option key={p} value={p}>
+                  {PERIOD_LABELS[p]}
+                </option>
+              ))}
+            </select>
+          </OccupancyField>
+          <OccupancyField>
+            <label htmlFor="occ-date">
+              {occPeriod === 'day'
+                ? 'Data'
+                : occPeriod === 'week'
+                  ? 'Data (savaitėje)'
+                  : 'Data (mėnesyje)'}
+            </label>
+            <input
+              id="occ-date"
+              type="date"
+              value={occDate}
+              onChange={(e) => setOccDate(e.target.value)}
+            />
+          </OccupancyField>
+          <ExportButton
+            type="button"
+            onClick={handleOccupancyExport}
+            disabled={occExporting || !occDate}
+          >
+            {occExporting ? 'Eksportuojama…' : 'Eksportuoti užimtumą'}
+          </ExportButton>
+        </OccupancyBox>
       </Sidebar>
       <Content>
         <Outlet />
@@ -143,6 +208,68 @@ const ExportButton = styled.button`
     flex-shrink: 0;
     font-size: 13px;
     padding: 8px 12px;
+  }
+`;
+
+const OccupancyBox = styled.div`
+  margin-top: ${({ theme }) => theme.ui.spacing.md};
+  padding-top: ${({ theme }) => theme.ui.spacing.md};
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.ui.spacing.sm};
+
+  @media (max-width: 768px) {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    flex-direction: row;
+    align-items: flex-end;
+    flex-shrink: 0;
+    gap: ${({ theme }) => theme.ui.spacing.xs};
+  }
+`;
+
+const OccupancyTitle = styled.h3`
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: ${({ theme }) => theme.colors.textMute};
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const OccupancyField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  label {
+    font-size: 12px;
+    color: ${({ theme }) => theme.colors.textMute};
+  }
+
+  select,
+  input {
+    padding: ${({ theme }) => `${theme.ui.spacing.xs} ${theme.ui.spacing.sm}`};
+    border: 1px solid ${({ theme }) => theme.colors.border};
+    border-radius: ${({ theme }) => theme.ui.radiusSm};
+    background: ${({ theme }) => theme.colors.surface};
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 14px;
+  }
+
+  @media (max-width: 768px) {
+    label {
+      display: none;
+    }
+    select,
+    input {
+      font-size: 13px;
+      padding: 6px 8px;
+    }
   }
 `;
 
