@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
   Bar,
@@ -21,6 +21,7 @@ import {
   EmptyState,
   FilterBar,
   FilterGroup,
+  FilterInput,
   FilterLabel,
   Muted,
   PageHeader,
@@ -108,22 +109,28 @@ export default function AdminStatsPage() {
 
   const rangeInvalid = from > to;
 
-  const load = useCallback(async () => {
+  useEffect(() => {
     if (rangeInvalid) return;
+    // Cancelled flag — greitai kaitaliojant laikotarpį lėtesnis ankstesnis
+    // atsakymas negali perrašyti naujesnio (out-of-order race).
+    let cancelled = false;
     setIsLoading(true);
     setLoadError(null);
-    try {
-      setStats(await statsApi.adminStats(from, to));
-    } catch (err) {
-      setLoadError(adminErrorMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
+    statsApi
+      .adminStats(from, to)
+      .then((data) => {
+        if (!cancelled) setStats(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(adminErrorMessage(err));
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [from, to, rangeInvalid]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   function applyPreset(id: PresetId) {
     const next = presetRange(id, stats?.range ?? null);
@@ -211,7 +218,7 @@ export default function AdminStatsPage() {
         </FilterGroup>
         <FilterGroup>
           <FilterLabel htmlFor={fromId}>Nuo</FilterLabel>
-          <DateInput
+          <FilterInput
             id={fromId}
             type="date"
             value={from}
@@ -221,7 +228,7 @@ export default function AdminStatsPage() {
         </FilterGroup>
         <FilterGroup>
           <FilterLabel htmlFor={toId}>Iki</FilterLabel>
-          <DateInput
+          <FilterInput
             id={toId}
             type="date"
             value={to}
@@ -504,19 +511,6 @@ const SegmentButton = styled.button<{ $active?: boolean }>`
   cursor: pointer;
 
   &:hover {
-    border-color: ${({ theme }) => theme.colors.brand};
-  }
-`;
-
-const DateInput = styled.input`
-  padding: 6px 10px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.ui.radiusSm};
-  font-size: 14px;
-  background: ${({ theme }) => theme.colors.surface};
-
-  &:focus {
-    outline: none;
     border-color: ${({ theme }) => theme.colors.brand};
   }
 `;

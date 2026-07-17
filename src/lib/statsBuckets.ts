@@ -24,7 +24,7 @@ export interface Bucket {
 const mmdd = (ymd: string) => ymd.slice(5);
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-/** 1..7 = Pr..Sk (ISO weekday) — string lygyje, be TZ rizikos. */
+/** 1..7 = Pr..Sk (ISO weekday) — per parseYmd (lokalus vidurnaktis). */
 function isoWeekday(ymd: string): number {
   const day = parseYmd(ymd).getDay(); // 0=Sun
   return day === 0 ? 7 : day;
