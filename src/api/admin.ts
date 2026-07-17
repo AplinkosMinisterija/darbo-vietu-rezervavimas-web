@@ -275,5 +275,34 @@ export const adminApi = {
       // the download on slower browsers before it commits.
       setTimeout(() => window.URL.revokeObjectURL(url), 0);
     },
+
+    /**
+     * Atsiunčia darbo vietų UŽIMTUMO .xlsx ataskaitą pagal periodą.
+     *   period — 'day' | 'week' | 'month'
+     *   date   — atskaitos data (YYYY-MM-DD); BE iš jos apskaičiuoja intervalą
+     *            (savaitė -> pirmadienis..sekmadienis, mėnuo -> 1..paskutinė).
+     * Elgesys identiškas downloadXlsx: blob + Content-Disposition failo vardas.
+     */
+    async downloadOccupancyXlsx(
+      period: 'day' | 'week' | 'month',
+      date: string,
+    ): Promise<void> {
+      const resp = await http.get('/occupancyExport/xlsx', {
+        params: { period, date },
+        responseType: 'blob',
+      });
+      const cd = resp.headers['content-disposition'] as string | undefined;
+      const match = cd?.match(/filename="?([^"]+)"?/i);
+      const filename = match ? match[1] : `uzimtumas-${period}.xlsx`;
+
+      const url = window.URL.createObjectURL(resp.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(url), 0);
+    },
   },
 };
