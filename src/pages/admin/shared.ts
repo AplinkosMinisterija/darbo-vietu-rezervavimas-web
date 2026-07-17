@@ -230,6 +230,12 @@ export const FilterInput = styled.input`
     outline: none;
     border-color: ${({ theme }) => theme.colors.brand};
   }
+  /* Border-color vien savęs neužtenka kaip focus indikatoriaus (WCAG 2.4.7) —
+     klaviatūros naudotojui rodome ryškų outline'ą. */
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.navy};
+    outline-offset: 1px;
+  }
 `;
 
 export const FilterSelect = styled.select`

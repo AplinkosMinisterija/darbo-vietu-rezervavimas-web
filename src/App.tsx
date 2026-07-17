@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import RequireAuth from './components/RequireAuth';
 import RequireAdmin from './components/RequireAdmin';
@@ -18,6 +19,10 @@ import AdminManagersPage from './pages/admin/AdminManagersPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
 import AdminIntegrationPage from './pages/admin/AdminIntegrationPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
+
+// Lazy — vienintelis recharts vartotojas; biblioteka lieka admin chunk'e,
+// paprasti naudotojai jos neparsisiunčia.
+const AdminStatsPage = lazy(() => import('./pages/admin/AdminStatsPage'));
 import { RoomsProvider } from './state/rooms';
 import { ToastProvider } from './components/Toast';
 
@@ -65,6 +70,14 @@ export default function App() {
           <Route path="users/:id" element={<AdminUserDetailPage />} />
           <Route path="rooms" element={<AdminRoomsPage />} />
           <Route path="reservations" element={<AdminReservationsPage />} />
+          <Route
+            path="statistika"
+            element={
+              <Suspense fallback={<div>Kraunama…</div>}>
+                <AdminStatsPage />
+              </Suspense>
+            }
+          />
           <Route path="vadovai" element={<AdminManagersPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
           <Route path="integracija" element={<AdminIntegrationPage />} />

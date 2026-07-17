@@ -58,6 +58,7 @@ export default function AdminLayout() {
         <SidebarLink to="/admin/users">Vartotojai</SidebarLink>
         <SidebarLink to="/admin/rooms">Patalpos</SidebarLink>
         <SidebarLink to="/admin/reservations">Rezervacijos</SidebarLink>
+        <SidebarLink to="/admin/statistika">Statistika</SidebarLink>
         <SidebarLink to="/admin/audit">Audit log</SidebarLink>
         <SidebarLink to="/admin/integracija">Integracijos</SidebarLink>
         <SidebarLink to="/admin/vadovai">Vadovai</SidebarLink>

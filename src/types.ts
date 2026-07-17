@@ -59,6 +59,30 @@ export interface FloorStats {
 
 export type StatsByFloor = Record<string, FloorStats>;
 
+/** GET /stats/admin atsakymas (admin statistikos puslapis). */
+export interface AdminStats {
+  /** Σ desk_count aktyviuose kabinetuose — vienos dienos talpa. */
+  capacity: number;
+  /** Visų rezervacijų (ne tik laikotarpio) MIN/MAX datos — „Visas laikotarpis“ preset'ui. */
+  range: { minDate: string | null; maxDate: string | null };
+  days: { date: string; reserved: number }[];
+  byFloor: { floor: number; reserved: number; capacity: number }[];
+  topRooms: {
+    roomId: string;
+    number: string;
+    name: string;
+    deskCount: number;
+    reserved: number;
+  }[];
+  kpi: {
+    totalReservations: number;
+    workdayAvgOccupancyPct: number;
+    peakDay: { date: string; reserved: number } | null;
+    reservingUsers: number;
+    activeUsers: number;
+  };
+}
+
 /** Error codes returned by the BE — naudojame šiuos UI klaidoms mapping'inti. */
 export type ReservationErrorCode =
   | 'DESK_TAKEN'
