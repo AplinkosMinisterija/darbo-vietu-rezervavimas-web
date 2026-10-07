@@ -122,27 +122,31 @@ export default function HomePage() {
           </FloorTab>
         ))}
 
-        <FilterLabel htmlFor={searchId}>Ieškoti</FilterLabel>
-        <SearchInput
-          id={searchId}
-          type="search"
-          placeholder="kabineto numeris ar pavadinimas"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <FilterGroup $grow>
+          <FilterLabel htmlFor={searchId}>Ieškoti</FilterLabel>
+          <SearchInput
+            id={searchId}
+            type="search"
+            placeholder="kabineto numeris ar pavadinimas"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </FilterGroup>
 
-        <FilterLabel htmlFor={sharedId}>Bendra?</FilterLabel>
         {isSearching && <SearchHint>ieškoma visuose aukštuose</SearchHint>}
 
-        <SharedSelect
-          id={sharedId}
-          value={shared}
-          onChange={(e) => setShared(e.target.value as RoomSharedFilter)}
-        >
-          <option value="all">Visos</option>
-          <option value="shared">Tik bendros</option>
-          <option value="private">Tik nebendros</option>
-        </SharedSelect>
+        <FilterGroup>
+          <FilterLabel htmlFor={sharedId}>Bendra?</FilterLabel>
+          <SharedSelect
+            id={sharedId}
+            value={shared}
+            onChange={(e) => setShared(e.target.value as RoomSharedFilter)}
+          >
+            <option value="all">Visos</option>
+            <option value="shared">Tik bendros</option>
+            <option value="private">Tik nebendros</option>
+          </SharedSelect>
+        </FilterGroup>
       </FloorBar>
 
       {roomsLoading || resLoading ? (
@@ -202,10 +206,19 @@ const FloorLabel = styled.span`
   margin-right: 4px;
 `;
 
+/* Etiketė ir jos laukas turi keltis į kitą eilutę kartu, o ne atskirai. */
+const FilterGroup = styled.div<{ $grow?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.ui.spacing.sm};
+  flex: ${({ $grow }) => ($grow ? '1 1 220px' : '0 0 auto')};
+  margin-left: ${({ theme }) => theme.ui.spacing.sm};
+`;
+
 const FilterLabel = styled.label`
   font-size: 14px;
   color: ${({ theme }) => theme.colors.textMute};
-  margin-left: ${({ theme }) => theme.ui.spacing.sm};
+  white-space: nowrap;
 `;
 
 const SearchHint = styled.span`
@@ -214,8 +227,8 @@ const SearchHint = styled.span`
 `;
 
 const SearchInput = styled.input`
-  flex: 1 1 200px;
-  min-width: 160px;
+  flex: 1 1 auto;
+  min-width: 120px;
   padding: 6px 10px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.ui.radiusSm};
