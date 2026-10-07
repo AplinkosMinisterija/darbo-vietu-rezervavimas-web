@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import WeekStrip from '../components/WeekStrip';
@@ -9,6 +9,7 @@ import { useAuth } from '../state/auth';
 import { useRooms } from '../state/rooms';
 import { useReservations } from '../state/reservations';
 import { todayYmd } from '../lib/dates';
+import { filterRooms, type RoomSharedFilter } from '../lib/roomFilter';
 import type { Room } from '../types';
 
 /**
@@ -25,7 +26,13 @@ export default function HomePage() {
 
   const [selectedDate, setSelectedDate] = useState<string>(todayYmd());
   const [calOpen, setCalOpen] = useState(false);
-  const [floor, setFloor] = useState<number>(1);
+  const [floor, setFloor] = useState<number | null>(null);
+  const [query, setQuery] = useState('');
+  const [shared, setShared] = useState<RoomSharedFilter>('all');
+  const floorInitialized = useRef(false);
+
+  const searchId = useId();
+  const sharedId = useId();
 
   const { data: reservations, isLoading: resLoading } = useReservations(selectedDate);
   const safeReservations = reservations ?? [];
@@ -38,16 +45,19 @@ export default function HomePage() {
     return Array.from(set).sort((a, b) => a - b);
   }, [rooms]);
 
-  // Default'iname `floor` į user'io kabineto aukštą, jei žinome.
+  // Default'iname `floor` į user'io kabineto aukštą — tik vieną kartą, kad
+  // vėliau pasirinktas „Visi" (floor === null) nebūtų perrašytas.
   useEffect(() => {
-    if (floors.length === 0) return;
-    if (!floors.includes(floor)) {
-      const myRoom = rooms.find((r) => allowedIds.has(r.id) && !r.isShared);
-      setFloor(myRoom ? myRoom.floor : floors[0]);
-    }
-  }, [floors, rooms, allowedIds, floor]);
+    if (floorInitialized.current || rooms.length === 0) return;
+    floorInitialized.current = true;
+    const myRoom = rooms.find((r) => allowedIds.has(r.id) && !r.isShared);
+    setFloor(myRoom ? myRoom.floor : (floors[0] ?? null));
+  }, [rooms, floors, allowedIds]);
 
-  const floorRooms = rooms.filter((r) => r.floor === floor);
+  const floorRooms = useMemo(
+    () => filterRooms(rooms, { query, floor, shared }),
+    [rooms, query, floor, shared],
+  );
   const reservedByRoom = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of safeReservations) {
@@ -89,17 +99,42 @@ export default function HomePage() {
         {floors.length === 0 && !roomsLoading && (
           <Muted>Patalpų sąrašas tuščias.</Muted>
         )}
+        {floors.length > 0 && (
+          <FloorTab type="button" $active={floor === null} onClick={() => setFloor(null)}>
+            Visi
+          </FloorTab>
+        )}
         {floors.map((f) => (
           <FloorTab key={f} type="button" $active={f === floor} onClick={() => setFloor(f)}>
             {f}
           </FloorTab>
         ))}
+
+        <FilterLabel htmlFor={searchId}>Ieškoti</FilterLabel>
+        <SearchInput
+          id={searchId}
+          type="search"
+          placeholder="kabineto numeris ar pavadinimas"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+
+        <FilterLabel htmlFor={sharedId}>Bendra?</FilterLabel>
+        <SharedSelect
+          id={sharedId}
+          value={shared}
+          onChange={(e) => setShared(e.target.value as RoomSharedFilter)}
+        >
+          <option value="all">Visos</option>
+          <option value="shared">Tik bendros</option>
+          <option value="private">Tik nebendros</option>
+        </SharedSelect>
       </FloorBar>
 
       {roomsLoading || resLoading ? (
         <Muted>Kraunama…</Muted>
       ) : floorRooms.length === 0 ? (
-        <Muted>Šiame aukšte patalpų nėra.</Muted>
+        <Muted>Pagal filtrą patalpų nerasta.</Muted>
       ) : (
         <Grid>
           {floorRooms.map((r) => (
@@ -151,6 +186,38 @@ const FloorLabel = styled.span`
   font-size: 14px;
   color: ${({ theme }) => theme.colors.textMute};
   margin-right: 4px;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 14px;
+  color: ${({ theme }) => theme.colors.textMute};
+  margin-left: ${({ theme }) => theme.ui.spacing.sm};
+`;
+
+const SearchInput = styled.input`
+  flex: 1 1 200px;
+  min-width: 160px;
+  padding: 6px 10px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.ui.radiusSm};
+  font-size: 14px;
+  background: ${({ theme }) => theme.colors.surface};
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.navy};
+    outline-offset: 1px;
+  }
+`;
+
+const SharedSelect = styled.select`
+  padding: 6px 10px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.ui.radiusSm};
+  font-size: 14px;
+  background: ${({ theme }) => theme.colors.surface};
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.navy};
+    outline-offset: 1px;
+  }
 `;
 
 const FloorTab = styled.button<{ $active: boolean }>`
