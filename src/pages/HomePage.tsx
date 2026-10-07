@@ -11,7 +11,6 @@ import { useReservations } from '../state/reservations';
 import { todayYmd } from '../lib/dates';
 import {
   SHARED_FILTER_OPTIONS,
-  compareRooms,
   filterRooms,
   roomFloors,
   type RoomSharedFilter,
@@ -35,7 +34,6 @@ export default function HomePage() {
   const [floor, setFloor] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const [shared, setShared] = useState<RoomSharedFilter>('all');
-  const [onlyMine, setOnlyMine] = useState(false);
   const floorInitialized = useRef(false);
 
   const searchId = useId();
@@ -49,11 +47,6 @@ export default function HomePage() {
 
   const floors = useMemo(() => roomFloors(rooms), [rooms]);
 
-  const accessibleIds = useMemo(
-    () => new Set(rooms.filter((r) => allowedIds.has(r.id) || r.isShared).map((r) => r.id)),
-    [rooms, allowedIds],
-  );
-
   // Default'iname `floor` į user'io kabineto aukštą — tik vieną kartą, kad
   // vėliau pasirinktas „Visi" (floor === null) nebūtų perrašytas.
   useEffect(() => {
@@ -66,13 +59,10 @@ export default function HomePage() {
   // Įvedus paieškos tekstą ieškome per VISUS aukštus — kitaip kabineto iš kito
   // aukšto nerastum, kol nepaspaudei „Visi".
   const isSearching = query.trim().length > 0;
-  const floorRooms = useMemo(() => {
-    const pool = onlyMine ? rooms.filter((r) => accessibleIds.has(r.id)) : rooms;
-    return filterRooms(pool, { query, floor: isSearching ? null : floor, shared }).sort(
-      (a, b) =>
-        Number(accessibleIds.has(b.id)) - Number(accessibleIds.has(a.id)) || compareRooms(a, b),
-    );
-  }, [rooms, accessibleIds, onlyMine, query, isSearching, floor, shared]);
+  const floorRooms = useMemo(
+    () => filterRooms(rooms, { query, floor: isSearching ? null : floor, shared }),
+    [rooms, query, isSearching, floor, shared],
+  );
   const reservedByRoom = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of safeReservations) {
@@ -112,7 +102,6 @@ export default function HomePage() {
         rooms={rooms}
         reservations={safeReservations}
         onShowMine={() => {
-          setOnlyMine(true);
           setFloor(null);
           setQuery('');
         }}
@@ -145,14 +134,6 @@ export default function HomePage() {
               {f}
             </FloorTab>
           ))}
-          <FloorTab
-            type="button"
-            aria-pressed={onlyMine}
-            $active={onlyMine}
-            onClick={() => setOnlyMine((v) => !v)}
-          >
-            Tik mano
-          </FloorTab>
         </FloorTabs>
 
         <FilterGroup $grow>
