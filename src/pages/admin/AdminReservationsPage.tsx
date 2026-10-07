@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { adminApi, type AdminReservation } from '../../api/admin';
 import { adminErrorMessage } from '../../lib/adminErrorMessages';
@@ -8,6 +8,7 @@ import { useRooms } from '../../state/rooms';
 import Modal, { DangerButton, PrimaryButton, SecondaryButton } from '../../components/Modal';
 import AssignReservationModal from '../../components/admin/AssignReservationModal';
 import { humanDate } from '../../lib/dates';
+import { filterRooms, type RoomSharedFilter } from '../../lib/roomFilter';
 import {
   Table,
   THead,
@@ -35,7 +36,7 @@ const PAGE_SIZE = 50;
 
 /**
  * Visų rezervacijų sąrašas su filtrais (data nuo/iki, user'io paieška,
- * patalpos dropdown). User paieška debounce'inama 300ms ir resolve'inama į
+ * aukštas, „Bendra?", patalpos dropdown). User paieška debounce'inama 300ms ir resolve'inama į
  * `userId` per /api/users?q=... lookup'ą — pirmas rezultatas, kad UI
  * būtų paprastas (ne combobox dropdown'as).
  *
@@ -52,7 +53,16 @@ export default function AdminReservationsPage() {
   const [debouncedUserQuery, setDebouncedUserQuery] = useState('');
   const [resolvedUserId, setResolvedUserId] = useState<string | undefined>(undefined);
   const [roomId, setRoomId] = useState('');
+  const [floor, setFloor] = useState<number | null>(null);
+  const [shared, setShared] = useState<RoomSharedFilter>('all');
   const [offset, setOffset] = useState(0);
+
+  const dateFromId = useId();
+  const dateToId = useId();
+  const userQueryId = useId();
+  const floorId = useId();
+  const sharedId = useId();
+  const roomSelectId = useId();
 
   const [items, setItems] = useState<AdminReservation[]>([]);
   const [total, setTotal] = useState(0);
@@ -104,6 +114,8 @@ export default function AdminReservationsPage() {
         dateTo: dateTo || undefined,
         userId: resolvedUserId,
         roomId: roomId || undefined,
+        floor: floor ?? undefined,
+        shared: shared === 'all' ? undefined : shared === 'shared',
         limit: PAGE_SIZE,
         offset,
       });
@@ -114,7 +126,7 @@ export default function AdminReservationsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [dateFrom, dateTo, resolvedUserId, roomId, offset, toast]);
+  }, [dateFrom, dateTo, resolvedUserId, roomId, floor, shared, offset, toast]);
 
   useEffect(() => {
     void load();
@@ -123,7 +135,7 @@ export default function AdminReservationsPage() {
   // Resetuojam offset kai filter pasikeičia (išskyrus userQuery — jį tvarko debounce)
   useEffect(() => {
     setOffset(0);
-  }, [dateFrom, dateTo, roomId, resolvedUserId]);
+  }, [dateFrom, dateTo, roomId, resolvedUserId, floor, shared]);
 
   async function handleCancel() {
     if (!cancelTarget) return;
@@ -141,10 +153,25 @@ export default function AdminReservationsPage() {
     }
   }
 
-  const sortedRooms = useMemo(
-    () => [...rooms].sort((a, b) => a.floor - b.floor || a.number.localeCompare(b.number)),
+  const floors = useMemo(
+    () => Array.from(new Set(rooms.map((r) => r.floor))).sort((a, b) => a - b),
     [rooms],
   );
+
+  const sortedRooms = useMemo(
+    () =>
+      filterRooms(rooms, { query: '', floor, shared }).sort(
+        (a, b) =>
+          a.floor - b.floor || a.number.localeCompare(b.number, 'lt', { numeric: true }),
+      ),
+    [rooms, floor, shared],
+  );
+
+  // Pasirinkta patalpa iškritusi iš susiaurinto sąrašo — kitaip aukšto ir
+  // patalpos filtrai prieštarautų vienas kitam, o lentelė liktų tuščia.
+  useEffect(() => {
+    if (roomId && !sortedRooms.some((r) => r.id === roomId)) setRoomId('');
+  }, [roomId, sortedRooms]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
@@ -160,24 +187,27 @@ export default function AdminReservationsPage() {
 
       <FilterBar>
         <FilterGroup>
-          <FilterLabel>Data nuo</FilterLabel>
+          <FilterLabel htmlFor={dateFromId}>Data nuo</FilterLabel>
           <FilterInput
+            id={dateFromId}
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
           />
         </FilterGroup>
         <FilterGroup>
-          <FilterLabel>Data iki</FilterLabel>
+          <FilterLabel htmlFor={dateToId}>Data iki</FilterLabel>
           <FilterInput
+            id={dateToId}
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
           />
         </FilterGroup>
         <FilterGroup>
-          <FilterLabel>Vartotojas</FilterLabel>
+          <FilterLabel htmlFor={userQueryId}>Vartotojas</FilterLabel>
           <FilterInput
+            id={userQueryId}
             type="search"
             placeholder="vardas ar el. paštas"
             value={userQuery}
@@ -188,8 +218,35 @@ export default function AdminReservationsPage() {
           )}
         </FilterGroup>
         <FilterGroup>
-          <FilterLabel>Patalpa</FilterLabel>
-          <FilterSelect value={roomId} onChange={(e) => setRoomId(e.target.value)}>
+          <FilterLabel htmlFor={floorId}>Aukštas</FilterLabel>
+          <FilterSelect
+            id={floorId}
+            value={floor === null ? '' : String(floor)}
+            onChange={(e) => setFloor(e.target.value === '' ? null : Number(e.target.value))}
+          >
+            <option value="">Visi</option>
+            {floors.map((f) => (
+              <option key={f} value={f}>
+                {f} a.
+              </option>
+            ))}
+          </FilterSelect>
+        </FilterGroup>
+        <FilterGroup>
+          <FilterLabel htmlFor={sharedId}>Bendra?</FilterLabel>
+          <FilterSelect
+            id={sharedId}
+            value={shared}
+            onChange={(e) => setShared(e.target.value as RoomSharedFilter)}
+          >
+            <option value="all">Visos</option>
+            <option value="shared">Tik bendros</option>
+            <option value="private">Tik nebendros</option>
+          </FilterSelect>
+        </FilterGroup>
+        <FilterGroup>
+          <FilterLabel htmlFor={roomSelectId}>Patalpa</FilterLabel>
+          <FilterSelect id={roomSelectId} value={roomId} onChange={(e) => setRoomId(e.target.value)}>
             <option value="">Visos</option>
             {sortedRooms.map((r) => (
               <option key={r.id} value={r.id}>

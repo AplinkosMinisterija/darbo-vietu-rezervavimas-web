@@ -61,6 +61,10 @@ export interface ReservationListParams {
   dateTo?: string;
   userId?: string;
   roomId?: string;
+  /** Patalpos aukštas — `undefined` reiškia „visi aukštai". */
+  floor?: number;
+  /** `true` — tik bendros patalpos, `false` — tik nebendros. */
+  shared?: boolean;
   limit?: number;
   offset?: number;
 }
