@@ -9,7 +9,13 @@ import { useAuth } from '../state/auth';
 import { useRooms } from '../state/rooms';
 import { useReservations } from '../state/reservations';
 import { todayYmd } from '../lib/dates';
-import { filterRooms, type RoomSharedFilter } from '../lib/roomFilter';
+import {
+  SHARED_FILTER_OPTIONS,
+  compareRooms,
+  filterRooms,
+  roomFloors,
+  type RoomSharedFilter,
+} from '../lib/roomFilter';
 import type { Room } from '../types';
 
 /**
@@ -29,21 +35,24 @@ export default function HomePage() {
   const [floor, setFloor] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const [shared, setShared] = useState<RoomSharedFilter>('all');
+  const [onlyMine, setOnlyMine] = useState(false);
   const floorInitialized = useRef(false);
 
   const searchId = useId();
   const sharedId = useId();
+  const floorsLabelId = useId();
 
   const { data: reservations, isLoading: resLoading } = useReservations(selectedDate);
   const safeReservations = reservations ?? [];
 
   const allowedIds = useMemo(() => new Set(user?.allowedRoomIds ?? []), [user]);
 
-  const floors = useMemo(() => {
-    const set = new Set<number>();
-    rooms.forEach((r) => set.add(r.floor));
-    return Array.from(set).sort((a, b) => a - b);
-  }, [rooms]);
+  const floors = useMemo(() => roomFloors(rooms), [rooms]);
+
+  const accessibleIds = useMemo(
+    () => new Set(rooms.filter((r) => allowedIds.has(r.id) || r.isShared).map((r) => r.id)),
+    [rooms, allowedIds],
+  );
 
   // Default'iname `floor` į user'io kabineto aukštą — tik vieną kartą, kad
   // vėliau pasirinktas „Visi" (floor === null) nebūtų perrašytas.
@@ -57,10 +66,13 @@ export default function HomePage() {
   // Įvedus paieškos tekstą ieškome per VISUS aukštus — kitaip kabineto iš kito
   // aukšto nerastum, kol nepaspaudei „Visi".
   const isSearching = query.trim().length > 0;
-  const floorRooms = useMemo(
-    () => filterRooms(rooms, { query, floor: isSearching ? null : floor, shared }),
-    [rooms, query, isSearching, floor, shared],
-  );
+  const floorRooms = useMemo(() => {
+    const pool = onlyMine ? rooms.filter((r) => accessibleIds.has(r.id)) : rooms;
+    return filterRooms(pool, { query, floor: isSearching ? null : floor, shared }).sort(
+      (a, b) =>
+        Number(accessibleIds.has(b.id)) - Number(accessibleIds.has(a.id)) || compareRooms(a, b),
+    );
+  }, [rooms, accessibleIds, onlyMine, query, isSearching, floor, shared]);
   const reservedByRoom = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of safeReservations) {
@@ -95,32 +107,53 @@ export default function HomePage() {
         onSelect={setSelectedDate}
       />
 
-      <MyRoomBanner user={user} rooms={rooms} reservations={safeReservations} />
+      <MyRoomBanner
+        user={user}
+        rooms={rooms}
+        reservations={safeReservations}
+        onShowMine={() => {
+          setOnlyMine(true);
+          setFloor(null);
+          setQuery('');
+        }}
+      />
 
       <FloorBar>
-        <FloorLabel>Aukštas:</FloorLabel>
+        <FloorLabel id={floorsLabelId}>Aukštas:</FloorLabel>
         {floors.length === 0 && !roomsLoading && (
           <Muted>Patalpų sąrašas tuščias.</Muted>
         )}
-        {floors.length > 0 && (
+        <FloorTabs role="group" aria-labelledby={floorsLabelId}>
+          {floors.length > 0 && (
+            <FloorTab
+              type="button"
+              aria-pressed={isSearching || floor === null}
+              $active={isSearching || floor === null}
+              onClick={() => setFloor(null)}
+            >
+              Visi
+            </FloorTab>
+          )}
+          {floors.map((f) => (
+            <FloorTab
+              key={f}
+              type="button"
+              aria-pressed={!isSearching && f === floor}
+              $active={!isSearching && f === floor}
+              onClick={() => setFloor(f)}
+            >
+              {f}
+            </FloorTab>
+          ))}
           <FloorTab
             type="button"
-            $active={isSearching || floor === null}
-            onClick={() => setFloor(null)}
+            aria-pressed={onlyMine}
+            $active={onlyMine}
+            onClick={() => setOnlyMine((v) => !v)}
           >
-            Visi
+            Tik mano
           </FloorTab>
-        )}
-        {floors.map((f) => (
-          <FloorTab
-            key={f}
-            type="button"
-            $active={!isSearching && f === floor}
-            onClick={() => setFloor(f)}
-          >
-            {f}
-          </FloorTab>
-        ))}
+        </FloorTabs>
 
         <FilterGroup $grow>
           <FilterLabel htmlFor={searchId}>Ieškoti</FilterLabel>
@@ -142,9 +175,11 @@ export default function HomePage() {
             value={shared}
             onChange={(e) => setShared(e.target.value as RoomSharedFilter)}
           >
-            <option value="all">Visos</option>
-            <option value="shared">Tik bendros</option>
-            <option value="private">Tik nebendros</option>
+            {SHARED_FILTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </SharedSelect>
         </FilterGroup>
       </FloorBar>
@@ -191,6 +226,13 @@ const CalToggle = styled.button`
   font-size: 22px;
   cursor: pointer;
   &:hover { background: ${({ theme }) => theme.colors.bg}; }
+`;
+
+const FloorTabs = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.ui.spacing.sm};
+  flex-wrap: wrap;
 `;
 
 const FloorBar = styled.div`
