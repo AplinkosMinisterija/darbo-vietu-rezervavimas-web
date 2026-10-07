@@ -54,9 +54,12 @@ export default function HomePage() {
     setFloor(myRoom ? myRoom.floor : (floors[0] ?? null));
   }, [rooms, floors, allowedIds]);
 
+  // Įvedus paieškos tekstą ieškome per VISUS aukštus — kitaip kabineto iš kito
+  // aukšto nerastum, kol nepaspaudei „Visi".
+  const isSearching = query.trim().length > 0;
   const floorRooms = useMemo(
-    () => filterRooms(rooms, { query, floor, shared }),
-    [rooms, query, floor, shared],
+    () => filterRooms(rooms, { query, floor: isSearching ? null : floor, shared }),
+    [rooms, query, isSearching, floor, shared],
   );
   const reservedByRoom = useMemo(() => {
     const map = new Map<string, number>();
@@ -100,12 +103,21 @@ export default function HomePage() {
           <Muted>Patalpų sąrašas tuščias.</Muted>
         )}
         {floors.length > 0 && (
-          <FloorTab type="button" $active={floor === null} onClick={() => setFloor(null)}>
+          <FloorTab
+            type="button"
+            $active={isSearching || floor === null}
+            onClick={() => setFloor(null)}
+          >
             Visi
           </FloorTab>
         )}
         {floors.map((f) => (
-          <FloorTab key={f} type="button" $active={f === floor} onClick={() => setFloor(f)}>
+          <FloorTab
+            key={f}
+            type="button"
+            $active={!isSearching && f === floor}
+            onClick={() => setFloor(f)}
+          >
             {f}
           </FloorTab>
         ))}
@@ -120,6 +132,8 @@ export default function HomePage() {
         />
 
         <FilterLabel htmlFor={sharedId}>Bendra?</FilterLabel>
+        {isSearching && <SearchHint>ieškoma visuose aukštuose</SearchHint>}
+
         <SharedSelect
           id={sharedId}
           value={shared}
@@ -192,6 +206,11 @@ const FilterLabel = styled.label`
   font-size: 14px;
   color: ${({ theme }) => theme.colors.textMute};
   margin-left: ${({ theme }) => theme.ui.spacing.sm};
+`;
+
+const SearchHint = styled.span`
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.textMute};
 `;
 
 const SearchInput = styled.input`
