@@ -11,6 +11,14 @@ import { colors, ui } from '../../styles/theme';
  * employees. Admins ALWAYS log in via this page — Microsoft accounts are
  * treated as USER role regardless of email.
  */
+function serverMessage(err: unknown): string | undefined {
+  if (typeof err !== 'object' || err === null) return undefined;
+  const data = (err as { response?: { data?: unknown } }).response?.data;
+  if (typeof data !== 'object' || data === null) return undefined;
+  const message = (data as { message?: unknown }).message;
+  return typeof message === 'string' ? message : undefined;
+}
+
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -25,9 +33,8 @@ export default function AdminLoginPage() {
     try {
       await http.post('/auth/admin-login', { username, password });
       window.location.href = '/admin';
-    } catch (err: any) {
-      const msg = err?.response?.data?.message;
-      setError(msg ?? 'Nepavyko prisijungti — patikrink kredencialus.');
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? 'Nepavyko prisijungti — patikrink kredencialus.');
       setBusy(false);
     }
   }

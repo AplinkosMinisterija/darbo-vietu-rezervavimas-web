@@ -41,7 +41,7 @@ export default function HomePage() {
   const floorsLabelId = useId();
 
   const { data: reservations, isLoading: resLoading } = useReservations(selectedDate);
-  const safeReservations = reservations ?? [];
+  const safeReservations = useMemo(() => reservations ?? [], [reservations]);
 
   const allowedIds = useMemo(() => new Set(user?.allowedRoomIds ?? []), [user]);
 
