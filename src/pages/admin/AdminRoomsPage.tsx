@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { adminApi } from '../../api/admin';
 import { adminErrorMessage } from '../../lib/adminErrorMessages';
@@ -7,6 +7,12 @@ import { useRooms } from '../../state/rooms';
 import Modal, { DangerButton, PrimaryButton, SecondaryButton } from '../../components/Modal';
 import CreateRoomModal from '../../components/admin/CreateRoomModal';
 import EditRoomModal from '../../components/admin/EditRoomModal';
+import {
+  EMPTY_ROOM_FILTER,
+  filterRooms,
+  type RoomFilter,
+  type RoomSharedFilter,
+} from '../../lib/roomFilter';
 import type { Room } from '../../types';
 import {
   Table,
@@ -22,6 +28,11 @@ import {
   Muted,
   LinkButton,
   DangerLinkButton,
+  FilterBar,
+  FilterGroup,
+  FilterLabel,
+  FilterInput,
+  FilterSelect,
 } from './shared';
 
 /**
@@ -40,10 +51,24 @@ export default function AdminRoomsPage() {
   const [deskInput, setDeskInput] = useState<number>(0);
   const [savingDesk, setSavingDesk] = useState(false);
   const [editingShared, setEditingShared] = useState<string | null>(null);
+  const [filter, setFilter] = useState<RoomFilter>(EMPTY_ROOM_FILTER);
+
+  const searchId = useId();
+  const floorId = useId();
+  const sharedId = useId();
+
+  // Aukštų sąrašas imamas iš VISŲ patalpų, kad pasirinkus aukštą pats
+  // pasirinkimas neišnyktų iš dropdown'o.
+  const floors = useMemo(
+    () => Array.from(new Set(rooms.map((r) => r.floor))).sort((a, b) => a - b),
+    [rooms],
+  );
+
+  const visibleRooms = useMemo(() => filterRooms(rooms, filter), [rooms, filter]);
 
   const grouped = useMemo(() => {
     const map = new Map<number, Room[]>();
-    for (const r of rooms) {
+    for (const r of visibleRooms) {
       const list = map.get(r.floor) ?? [];
       list.push(r);
       map.set(r.floor, list);
@@ -52,7 +77,7 @@ export default function AdminRoomsPage() {
       list.sort((a, b) => a.number.localeCompare(b.number, 'lt', { numeric: true }));
     }
     return Array.from(map.entries()).sort(([a], [b]) => a - b);
-  }, [rooms]);
+  }, [visibleRooms]);
 
   function startEditDesk(r: Room) {
     setEditingDesk(r.id);
@@ -118,10 +143,59 @@ export default function AdminRoomsPage() {
         </PrimaryButton>
       </PageHeader>
 
+      <FilterBar>
+        <FilterGroup>
+          <FilterLabel htmlFor={searchId}>Paieška</FilterLabel>
+          <FilterInput
+            id={searchId}
+            type="search"
+            placeholder="numeris ar pavadinimas"
+            value={filter.query}
+            onChange={(e) => setFilter({ ...filter, query: e.target.value })}
+          />
+        </FilterGroup>
+        <FilterGroup>
+          <FilterLabel htmlFor={floorId}>Aukštas</FilterLabel>
+          <FilterSelect
+            id={floorId}
+            value={filter.floor === null ? '' : String(filter.floor)}
+            onChange={(e) =>
+              setFilter({
+                ...filter,
+                floor: e.target.value === '' ? null : Number(e.target.value),
+              })
+            }
+          >
+            <option value="">Visi</option>
+            {floors.map((f) => (
+              <option key={f} value={f}>
+                {f} a.
+              </option>
+            ))}
+          </FilterSelect>
+        </FilterGroup>
+        <FilterGroup>
+          <FilterLabel htmlFor={sharedId}>Bendra?</FilterLabel>
+          <FilterSelect
+            id={sharedId}
+            value={filter.shared}
+            onChange={(e) =>
+              setFilter({ ...filter, shared: e.target.value as RoomSharedFilter })
+            }
+          >
+            <option value="all">Visos</option>
+            <option value="shared">Tik bendros</option>
+            <option value="private">Tik nebendros</option>
+          </FilterSelect>
+        </FilterGroup>
+      </FilterBar>
+
       {isLoading && rooms.length === 0 ? (
         <Muted>Kraunama…</Muted>
       ) : rooms.length === 0 ? (
         <EmptyState>Patalpų sąraše dar nieko nėra. Pradėk pridėjant pirmąją.</EmptyState>
+      ) : visibleRooms.length === 0 ? (
+        <EmptyState>Pagal filtrą patalpų nerasta.</EmptyState>
       ) : (
         grouped.map(([floor, list]) => (
           <FloorSection key={floor}>
