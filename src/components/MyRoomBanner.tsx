@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import type { Reservation, Room, User } from '../types';
@@ -19,9 +20,15 @@ interface Props {
  *   4. jei laisva == 0 → raudonas, kitaip žalias.
  *
  * Clickable → /rooms/:nr.
+ *
+ * Daugiau nei COLLAPSED_LIMIT prieinamų kabinetų (pvz. vadovai mato 25+)
+ * juostų stulpelis nustumdavo filtrus ir korteles už ekrano ribų, todėl
+ * tokiu atveju rodoma viena santrauka su išskleidimu.
  */
+const COLLAPSED_LIMIT = 3;
 export default function MyRoomBanner({ user, rooms, reservations }: Props) {
   const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(false);
 
   if (!user) return null;
 
@@ -49,12 +56,35 @@ export default function MyRoomBanner({ user, rooms, reservations }: Props) {
   });
 
   const isSingle = sorted.length === 1;
+  const freeIn = (room: Room) =>
+    room.deskCount - reservations.filter((r) => r.roomId === room.id).length;
+
+  if (sorted.length > COLLAPSED_LIMIT && !expanded) {
+    const totalFree = sorted.reduce((sum, room) => sum + Math.max(freeIn(room), 0), 0);
+    const totalDesks = sorted.reduce((sum, room) => sum + room.deskCount, 0);
+    return (
+      <StaticBanner $tone={totalFree > 0 ? 'success' : 'danger'}>
+        <Left>
+          <strong>Tau prieinami {sorted.length} kabinetai</strong>
+          <RoomName>
+            {totalFree > 0
+              ? `${totalFree} laisvos vietos iš ${totalDesks}`
+              : 'Laisvų vietų nėra'}
+          </RoomName>
+        </Left>
+        <Right>
+          <ToggleButton type="button" onClick={() => setExpanded(true)}>
+            Rodyti sąrašą
+          </ToggleButton>
+        </Right>
+      </StaticBanner>
+    );
+  }
 
   return (
     <Stack>
       {sorted.map((room) => {
-        const reservedCount = reservations.filter((r) => r.roomId === room.id).length;
-        const free = room.deskCount - reservedCount;
+        const free = freeIn(room);
         const tone: BannerTone = free <= 0 ? 'danger' : 'success';
         const label = isSingle ? 'Tavo kabinetas' : 'Tau prieinamas kabinetas';
         return (
@@ -85,9 +115,40 @@ export default function MyRoomBanner({ user, rooms, reservations }: Props) {
           </ClickableBanner>
         );
       })}
+      {sorted.length > COLLAPSED_LIMIT && (
+        <CollapseRow>
+          <ToggleButton type="button" onClick={() => setExpanded(false)}>
+            Suskleisti sąrašą
+          </ToggleButton>
+        </CollapseRow>
+      )}
     </Stack>
   );
 }
+
+const CollapseRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const ToggleButton = styled.button`
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: ${({ theme }) => theme.ui.radiusSm};
+  cursor: pointer;
+  &:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 1px;
+  }
+`;
 
 const Stack = styled.div`
   display: flex;
