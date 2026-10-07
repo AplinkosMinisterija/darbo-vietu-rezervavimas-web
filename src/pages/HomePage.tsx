@@ -9,7 +9,12 @@ import { useAuth } from '../state/auth';
 import { useRooms } from '../state/rooms';
 import { useReservations } from '../state/reservations';
 import { todayYmd } from '../lib/dates';
-import { filterRooms, type RoomSharedFilter } from '../lib/roomFilter';
+import {
+  SHARED_FILTER_OPTIONS,
+  filterRooms,
+  roomFloors,
+  type RoomSharedFilter,
+} from '../lib/roomFilter';
 import type { Room } from '../types';
 
 /**
@@ -33,17 +38,14 @@ export default function HomePage() {
 
   const searchId = useId();
   const sharedId = useId();
+  const floorsLabelId = useId();
 
   const { data: reservations, isLoading: resLoading } = useReservations(selectedDate);
-  const safeReservations = reservations ?? [];
+  const safeReservations = useMemo(() => reservations ?? [], [reservations]);
 
   const allowedIds = useMemo(() => new Set(user?.allowedRoomIds ?? []), [user]);
 
-  const floors = useMemo(() => {
-    const set = new Set<number>();
-    rooms.forEach((r) => set.add(r.floor));
-    return Array.from(set).sort((a, b) => a - b);
-  }, [rooms]);
+  const floors = useMemo(() => roomFloors(rooms), [rooms]);
 
   // Default'iname `floor` į user'io kabineto aukštą — tik vieną kartą, kad
   // vėliau pasirinktas „Visi" (floor === null) nebūtų perrašytas.
@@ -54,9 +56,12 @@ export default function HomePage() {
     setFloor(myRoom ? myRoom.floor : (floors[0] ?? null));
   }, [rooms, floors, allowedIds]);
 
+  // Įvedus paieškos tekstą ieškome per VISUS aukštus — kitaip kabineto iš kito
+  // aukšto nerastum, kol nepaspaudei „Visi".
+  const isSearching = query.trim().length > 0;
   const floorRooms = useMemo(
-    () => filterRooms(rooms, { query, floor, shared }),
-    [rooms, query, floor, shared],
+    () => filterRooms(rooms, { query, floor: isSearching ? null : floor, shared }),
+    [rooms, query, isSearching, floor, shared],
   );
   const reservedByRoom = useMemo(() => {
     const map = new Map<string, number>();
@@ -92,43 +97,72 @@ export default function HomePage() {
         onSelect={setSelectedDate}
       />
 
-      <MyRoomBanner user={user} rooms={rooms} reservations={safeReservations} />
+      <MyRoomBanner
+        user={user}
+        rooms={rooms}
+        reservations={safeReservations}
+        onShowMine={() => {
+          setFloor(null);
+          setQuery('');
+        }}
+      />
 
       <FloorBar>
-        <FloorLabel>Aukštas:</FloorLabel>
+        <FloorLabel id={floorsLabelId}>Aukštas:</FloorLabel>
         {floors.length === 0 && !roomsLoading && (
           <Muted>Patalpų sąrašas tuščias.</Muted>
         )}
-        {floors.length > 0 && (
-          <FloorTab type="button" $active={floor === null} onClick={() => setFloor(null)}>
-            Visi
-          </FloorTab>
-        )}
-        {floors.map((f) => (
-          <FloorTab key={f} type="button" $active={f === floor} onClick={() => setFloor(f)}>
-            {f}
-          </FloorTab>
-        ))}
+        <FloorTabs role="group" aria-labelledby={floorsLabelId}>
+          {floors.length > 0 && (
+            <FloorTab
+              type="button"
+              aria-pressed={isSearching || floor === null}
+              $active={isSearching || floor === null}
+              onClick={() => setFloor(null)}
+            >
+              Visi
+            </FloorTab>
+          )}
+          {floors.map((f) => (
+            <FloorTab
+              key={f}
+              type="button"
+              aria-pressed={!isSearching && f === floor}
+              $active={!isSearching && f === floor}
+              onClick={() => setFloor(f)}
+            >
+              {f}
+            </FloorTab>
+          ))}
+        </FloorTabs>
 
-        <FilterLabel htmlFor={searchId}>Ieškoti</FilterLabel>
-        <SearchInput
-          id={searchId}
-          type="search"
-          placeholder="kabineto numeris ar pavadinimas"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <FilterGroup $grow>
+          <FilterLabel htmlFor={searchId}>Ieškoti</FilterLabel>
+          <SearchInput
+            id={searchId}
+            type="search"
+            placeholder="kabineto numeris ar pavadinimas"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </FilterGroup>
 
-        <FilterLabel htmlFor={sharedId}>Bendra?</FilterLabel>
-        <SharedSelect
-          id={sharedId}
-          value={shared}
-          onChange={(e) => setShared(e.target.value as RoomSharedFilter)}
-        >
-          <option value="all">Visos</option>
-          <option value="shared">Tik bendros</option>
-          <option value="private">Tik nebendros</option>
-        </SharedSelect>
+        {isSearching && <SearchHint>ieškoma visuose aukštuose</SearchHint>}
+
+        <FilterGroup>
+          <FilterLabel htmlFor={sharedId}>Bendra?</FilterLabel>
+          <SharedSelect
+            id={sharedId}
+            value={shared}
+            onChange={(e) => setShared(e.target.value as RoomSharedFilter)}
+          >
+            {SHARED_FILTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </SharedSelect>
+        </FilterGroup>
       </FloorBar>
 
       {roomsLoading || resLoading ? (
@@ -175,6 +209,13 @@ const CalToggle = styled.button`
   &:hover { background: ${({ theme }) => theme.colors.bg}; }
 `;
 
+const FloorTabs = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.ui.spacing.sm};
+  flex-wrap: wrap;
+`;
+
 const FloorBar = styled.div`
   display: flex;
   align-items: center;
@@ -188,15 +229,29 @@ const FloorLabel = styled.span`
   margin-right: 4px;
 `;
 
-const FilterLabel = styled.label`
-  font-size: 14px;
-  color: ${({ theme }) => theme.colors.textMute};
+/* Etiketė ir jos laukas turi keltis į kitą eilutę kartu, o ne atskirai. */
+const FilterGroup = styled.div<{ $grow?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.ui.spacing.sm};
+  flex: ${({ $grow }) => ($grow ? '1 1 220px' : '0 0 auto')};
   margin-left: ${({ theme }) => theme.ui.spacing.sm};
 `;
 
+const FilterLabel = styled.label`
+  font-size: 14px;
+  color: ${({ theme }) => theme.colors.textMute};
+  white-space: nowrap;
+`;
+
+const SearchHint = styled.span`
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.textMute};
+`;
+
 const SearchInput = styled.input`
-  flex: 1 1 200px;
-  min-width: 160px;
+  flex: 1 1 auto;
+  min-width: 120px;
   padding: 6px 10px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.ui.radiusSm};

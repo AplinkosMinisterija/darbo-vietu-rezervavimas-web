@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   EMPTY_ROOM_FILTER,
+  SHARED_FILTER_OPTIONS,
+  compareRooms,
   filterRooms,
   normalizeSearchText,
+  roomFloors,
   type FilterableRoom,
 } from './roomFilter';
 
@@ -64,5 +67,38 @@ describe('filterRooms', () => {
     const input = [...rooms];
     filterRooms(input, { ...EMPTY_ROOM_FILTER, query: '3' });
     expect(input).toEqual(rooms);
+  });
+});
+
+describe('roomFloors', () => {
+  it('returns each floor once, ascending', () => {
+    expect(roomFloors(rooms)).toEqual([2, 3]);
+  });
+
+  it('keeps floor 0', () => {
+    expect(roomFloors([{ number: '001', name: 'Rūsys', floor: 0, isShared: false }])).toEqual([0]);
+  });
+});
+
+describe('compareRooms', () => {
+  it('orders by floor first, then by number naturally', () => {
+    const unsorted: FilterableRoom[] = [
+      { number: '207-1', name: '', floor: 2, isShared: false },
+      { number: '310', name: '', floor: 3, isShared: false },
+      { number: '207', name: '', floor: 2, isShared: false },
+      { number: '31', name: '', floor: 3, isShared: false },
+    ];
+    expect([...unsorted].sort(compareRooms).map((r) => r.number)).toEqual([
+      '207',
+      '207-1',
+      '31',
+      '310',
+    ]);
+  });
+});
+
+describe('SHARED_FILTER_OPTIONS', () => {
+  it('covers every RoomSharedFilter value, "all" first', () => {
+    expect(SHARED_FILTER_OPTIONS.map((o) => o.value)).toEqual(['all', 'shared', 'private']);
   });
 });

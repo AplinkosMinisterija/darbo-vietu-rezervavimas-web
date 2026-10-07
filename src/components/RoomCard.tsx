@@ -33,8 +33,7 @@ export default function RoomCard({
     <>
       <Header>
         <Number>{room.number}</Number>
-        {isMyRoom && <Badge>mano</Badge>}
-        {room.isShared && <SharedBadge>bendra</SharedBadge>}
+        {isClickable && <AccessBadge>prieinama</AccessBadge>}
       </Header>
       {room.name && <Name>{room.name}</Name>}
       <Footer>
@@ -121,22 +120,14 @@ const Name = styled.div`
   line-height: 1.3;
 `;
 
-const Badge = styled.span`
+const AccessBadge = styled.span`
   background: ${({ theme }) => theme.colors.brand};
   color: #fff;
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 999px;
   font-weight: 500;
-`;
-
-const SharedBadge = styled.span`
-  background: ${({ theme }) => theme.colors.navy};
-  color: #fff;
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  font-weight: 500;
+  white-space: nowrap;
 `;
 
 const Footer = styled.div`

@@ -6,98 +6,82 @@ interface Props {
   user: User | null;
   rooms: Room[];
   reservations: Reservation[];
+  /** Įjungia „Tik mano" filtrą kortelių tinklelyje. */
+  onShowMine: () => void;
 }
 
 /**
- * "Tavo kabinetas" banner'is — paima pirmą non-shared kabinetą iš
- * `allowedRoomIds`. Jei tokio nėra (pvz. user'is tik turi shared coworking
- * prieigą), fallback'as — pirmas allowed room. Logic'a:
+ * Viena eilutė apie naudotojo kabinetus — ne sąrašas. Patys kabinetai
+ * gyvena kortelių tinklelyje su „mano" ženkleliu, todėl juostos juos
+ * tik dubliavo ir prie 40 kabinetų nustumdavo filtrus už ekrano.
  *
- *   1. allowedRoomIds tuščias → „kabinetas nenustatytas".
- *   2. find non-shared room; jei nėra — pirmas iš sąrašo.
- *   3. count reservations.filter(r=>r.roomId==room.id) → laisva = deskCount - reserved.
- *   4. jei laisva == 0 → raudonas, kitaip žalias.
- *
- * Clickable → /rooms/:nr.
+ * Prieinama = priskirti kabinetai + visos bendros patalpos (jas gali
+ * rezervuoti kiekvienas).
  */
-export default function MyRoomBanner({ user, rooms, reservations }: Props) {
+export default function MyRoomBanner({ user, rooms, reservations, onShowMine }: Props) {
   const navigate = useNavigate();
 
   if (!user) return null;
 
   const ids = user.allowedRoomIds ?? [];
-  // Accessible = the user's assigned cabinets PLUS every shared room — a shared
-  // room (e.g. 309 "Rezervuojamos darbo vietos") is bookable by everyone, so it
-  // shows as a card for all users regardless of assignment.
   const accessible = rooms.filter((r) => ids.includes(r.id) || r.isShared);
+
   if (accessible.length === 0) {
     return (
-      <StaticBanner $tone="neutral">
+      <Banner $tone="neutral">
         <Left>
           <strong>Tavo kabinetas nenustatytas</strong>
-          <RoomName>Susisiek su administratoriumi — tau dar nepriskirta darbo vieta.</RoomName>
+          <Sub>Susisiek su administratoriumi — tau dar nepriskirta darbo vieta.</Sub>
         </Left>
-      </StaticBanner>
+      </Banner>
     );
   }
 
-  // Stack a banner per accessible cabinet. Sort so a user's own (non-shared)
-  // cabinet comes first, then any shared/group rooms below.
-  const sorted = [...accessible].sort((a, b) => {
-    if (a.isShared === b.isShared) return a.number.localeCompare(b.number);
-    return a.isShared ? 1 : -1;
-  });
+  const freeIn = (room: Room) =>
+    Math.max(room.deskCount - reservations.filter((r) => r.roomId === room.id).length, 0);
+  const totalFree = accessible.reduce((sum, room) => sum + freeIn(room), 0);
+  const totalDesks = accessible.reduce((sum, room) => sum + room.deskCount, 0);
+  const tone = totalFree > 0 ? 'success' : 'danger';
 
-  const isSingle = sorted.length === 1;
+  if (accessible.length === 1) {
+    const room = accessible[0];
+    const free = freeIn(room);
+    return (
+      <Banner $tone={tone}>
+        <Left>
+          <strong>
+            Tavo kabinete {room.number} — {freeLabel(free)}
+          </strong>
+          {room.name && <Sub>{room.name}</Sub>}
+        </Left>
+        <Action type="button" onClick={() => navigate(`/rooms/${room.number}`)}>
+          Rezervuoti
+        </Action>
+      </Banner>
+    );
+  }
 
   return (
-    <Stack>
-      {sorted.map((room) => {
-        const reservedCount = reservations.filter((r) => r.roomId === room.id).length;
-        const free = room.deskCount - reservedCount;
-        const tone: BannerTone = free <= 0 ? 'danger' : 'success';
-        const label = isSingle ? 'Tavo kabinetas' : 'Tau prieinamas kabinetas';
-        return (
-          <ClickableBanner
-            key={room.id}
-            $tone={tone}
-            type="button"
-            onClick={() => navigate(`/rooms/${room.number}`)}
-            aria-label={`Atidaryti kabinetą ${room.number}`}
-          >
-            <Left>
-              <strong>
-                {label}: {room.number}
-              </strong>
-              {room.name && <RoomName>{room.name}</RoomName>}
-            </Left>
-            <Right>
-              {tone === 'danger' ? (
-                <span>Pilna — nėra laisvų vietų</span>
-              ) : (
-                <span>
-                  {free === 1 ? '1 laisva vieta' : `${free} laisvos vietos`}
-                  <Muted> / {room.deskCount}</Muted>
-                </span>
-              )}
-              <Chevron>→</Chevron>
-            </Right>
-          </ClickableBanner>
-        );
-      })}
-    </Stack>
+    <Banner $tone={tone}>
+      <Left>
+        <strong>Tavo kabinetuose — {freeLabel(totalFree)} iš {totalDesks}</strong>
+        <Sub>Tau prieinami {accessible.length} kabinetai</Sub>
+      </Left>
+      <Action type="button" onClick={onShowMine}>
+        Rodyti mano kabinetus
+      </Action>
+    </Banner>
   );
 }
 
-const Stack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.ui.spacing.sm};
-`;
+function freeLabel(free: number): string {
+  if (free === 0) return 'laisvų vietų nėra';
+  return free === 1 ? '1 laisva vieta' : `${free} laisvos vietos`;
+}
 
 type BannerTone = 'success' | 'danger' | 'neutral';
 
-const bannerBase = css<{ $tone: BannerTone }>`
+const Banner = styled.div<{ $tone: BannerTone }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -105,8 +89,6 @@ const bannerBase = css<{ $tone: BannerTone }>`
   padding: ${({ theme }) => `${theme.ui.spacing.md} ${theme.ui.spacing.lg}`};
   border-radius: ${({ theme }) => theme.ui.radius};
   color: #fff;
-  font-family: inherit;
-  text-align: left;
   background: ${({ $tone, theme }) =>
     $tone === 'success'
       ? theme.colors.brand
@@ -118,31 +100,11 @@ const bannerBase = css<{ $tone: BannerTone }>`
     font-size: 16px;
     font-weight: 600;
   }
-  span {
-    font-size: 14px;
-    opacity: 0.95;
-  }
 
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
     padding: ${({ theme }) => theme.ui.spacing.md};
-  }
-`;
-
-const StaticBanner = styled.div<{ $tone: BannerTone }>`
-  ${bannerBase};
-`;
-
-const ClickableBanner = styled.button<{ $tone: BannerTone }>`
-  ${bannerBase};
-  border: none;
-  cursor: pointer;
-  width: 100%;
-  transition: filter 0.12s ease;
-
-  &:hover {
-    filter: brightness(1.05);
   }
 `;
 
@@ -152,22 +114,31 @@ const Left = styled.div`
   gap: 2px;
 `;
 
-const RoomName = styled.span`
+const Sub = styled.span`
   font-size: 13px;
   opacity: 0.9;
 `;
 
-const Right = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.ui.spacing.sm};
+const actionBase = css`
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: ${({ theme }) => theme.ui.radiusSm};
+  cursor: pointer;
+  &:hover {
+    background: rgba(0, 0, 0, 0.45);
+  }
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
 `;
 
-const Muted = styled.span`
-  opacity: 0.75;
-`;
-
-const Chevron = styled.span`
-  font-size: 18px;
-  opacity: 0.9;
+const Action = styled.button`
+  ${actionBase};
 `;

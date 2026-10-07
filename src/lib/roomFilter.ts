@@ -13,6 +13,20 @@ export const EMPTY_ROOM_FILTER: RoomFilter = { query: '', floor: null, shared: '
 
 export type FilterableRoom = Pick<Room, 'number' | 'name' | 'floor' | 'isShared'>;
 
+export const SHARED_FILTER_OPTIONS: ReadonlyArray<{ value: RoomSharedFilter; label: string }> = [
+  { value: 'all', label: 'Visos' },
+  { value: 'shared', label: 'Tik bendros' },
+  { value: 'private', label: 'Tik nebendros' },
+];
+
+export function roomFloors(rooms: FilterableRoom[]): number[] {
+  return Array.from(new Set(rooms.map((r) => r.floor))).sort((a, b) => a - b);
+}
+
+export function compareRooms(a: FilterableRoom, b: FilterableRoom): number {
+  return a.floor - b.floor || a.number.localeCompare(b.number, 'lt', { numeric: true });
+}
+
 /**
  * Naudotojai renka be lietuviškų raidžių („teises" vietoj „Teisės"), todėl
  * prieš lyginant nuimame diakritikus (NFD + combining marks intervalas).

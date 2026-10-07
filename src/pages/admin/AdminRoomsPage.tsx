@@ -9,7 +9,9 @@ import CreateRoomModal from '../../components/admin/CreateRoomModal';
 import EditRoomModal from '../../components/admin/EditRoomModal';
 import {
   EMPTY_ROOM_FILTER,
+  SHARED_FILTER_OPTIONS,
   filterRooms,
+  roomFloors,
   type RoomFilter,
   type RoomSharedFilter,
 } from '../../lib/roomFilter';
@@ -59,10 +61,7 @@ export default function AdminRoomsPage() {
 
   // Aukštų sąrašas imamas iš VISŲ patalpų, kad pasirinkus aukštą pats
   // pasirinkimas neišnyktų iš dropdown'o.
-  const floors = useMemo(
-    () => Array.from(new Set(rooms.map((r) => r.floor))).sort((a, b) => a - b),
-    [rooms],
-  );
+  const floors = useMemo(() => roomFloors(rooms), [rooms]);
 
   const visibleRooms = useMemo(() => filterRooms(rooms, filter), [rooms, filter]);
 
@@ -183,9 +182,11 @@ export default function AdminRoomsPage() {
               setFilter({ ...filter, shared: e.target.value as RoomSharedFilter })
             }
           >
-            <option value="all">Visos</option>
-            <option value="shared">Tik bendros</option>
-            <option value="private">Tik nebendros</option>
+            {SHARED_FILTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </FilterSelect>
         </FilterGroup>
       </FilterBar>

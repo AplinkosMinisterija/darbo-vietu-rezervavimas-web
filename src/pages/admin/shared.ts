@@ -248,4 +248,9 @@ export const FilterSelect = styled.select`
     outline: none;
     border-color: ${({ theme }) => theme.colors.brand};
   }
+  /* Border-color vien savęs neužtenka kaip focus indikatoriaus (WCAG 2.4.7). */
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.colors.navy};
+    outline-offset: 1px;
+  }
 `;
