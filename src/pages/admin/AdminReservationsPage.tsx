@@ -8,7 +8,13 @@ import { useRooms } from '../../state/rooms';
 import Modal, { DangerButton, PrimaryButton, SecondaryButton } from '../../components/Modal';
 import AssignReservationModal from '../../components/admin/AssignReservationModal';
 import { humanDate } from '../../lib/dates';
-import { filterRooms, type RoomSharedFilter } from '../../lib/roomFilter';
+import {
+  SHARED_FILTER_OPTIONS,
+  compareRooms,
+  filterRooms,
+  roomFloors,
+  type RoomSharedFilter,
+} from '../../lib/roomFilter';
 import {
   Table,
   THead,
@@ -73,6 +79,7 @@ export default function AdminReservationsPage() {
   const [assignOpen, setAssignOpen] = useState(false);
 
   const debounceRef = useRef<number | null>(null);
+  const requestSeqRef = useRef(0);
 
   useEffect(() => {
     if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
@@ -107,6 +114,7 @@ export default function AdminReservationsPage() {
   }, [debouncedUserQuery]);
 
   const load = useCallback(async () => {
+    const seq = ++requestSeqRef.current;
     setIsLoading(true);
     try {
       const data = await adminApi.reservations.listAll({
@@ -119,12 +127,14 @@ export default function AdminReservationsPage() {
         limit: PAGE_SIZE,
         offset,
       });
+      // Vėluojantis ankstesnio filtro atsakymas neturi perrašyti naujesnio.
+      if (seq !== requestSeqRef.current) return;
       setItems(data.items);
       setTotal(data.total);
     } catch (err) {
-      toast.error(adminErrorMessage(err));
+      if (seq === requestSeqRef.current) toast.error(adminErrorMessage(err));
     } finally {
-      setIsLoading(false);
+      if (seq === requestSeqRef.current) setIsLoading(false);
     }
   }, [dateFrom, dateTo, resolvedUserId, roomId, floor, shared, offset, toast]);
 
@@ -135,7 +145,26 @@ export default function AdminReservationsPage() {
   // Resetuojam offset kai filter pasikeičia (išskyrus userQuery — jį tvarko debounce)
   useEffect(() => {
     setOffset(0);
-  }, [dateFrom, dateTo, roomId, resolvedUserId, floor, shared]);
+  }, [dateFrom, dateTo, roomId, resolvedUserId]);
+
+  /**
+   * Aukštas/„Bendra?" siaurina ir patalpų sąrašą, todėl pasirinkta patalpa
+   * gali iš jo iškristi. Išvalom ją kartu su filtru viename state atnaujinime —
+   * kitaip tarpinis renderis paleistų prieštaringą užklausą (roomId iš kito aukšto).
+   */
+  function applyRoomScope(next: { floor?: number | null; shared?: RoomSharedFilter }) {
+    const nextFloor = next.floor !== undefined ? next.floor : floor;
+    const nextShared = next.shared !== undefined ? next.shared : shared;
+    const stillVisible =
+      roomId &&
+      filterRooms(rooms, { query: '', floor: nextFloor, shared: nextShared }).some(
+        (r) => r.id === roomId,
+      );
+    if (next.floor !== undefined) setFloor(next.floor);
+    if (next.shared !== undefined) setShared(next.shared);
+    if (roomId && !stillVisible) setRoomId('');
+    setOffset(0);
+  }
 
   async function handleCancel() {
     if (!cancelTarget) return;
@@ -153,25 +182,12 @@ export default function AdminReservationsPage() {
     }
   }
 
-  const floors = useMemo(
-    () => Array.from(new Set(rooms.map((r) => r.floor))).sort((a, b) => a - b),
-    [rooms],
-  );
+  const floors = useMemo(() => roomFloors(rooms), [rooms]);
 
   const sortedRooms = useMemo(
-    () =>
-      filterRooms(rooms, { query: '', floor, shared }).sort(
-        (a, b) =>
-          a.floor - b.floor || a.number.localeCompare(b.number, 'lt', { numeric: true }),
-      ),
+    () => filterRooms(rooms, { query: '', floor, shared }).sort(compareRooms),
     [rooms, floor, shared],
   );
-
-  // Pasirinkta patalpa iškritusi iš susiaurinto sąrašo — kitaip aukšto ir
-  // patalpos filtrai prieštarautų vienas kitam, o lentelė liktų tuščia.
-  useEffect(() => {
-    if (roomId && !sortedRooms.some((r) => r.id === roomId)) setRoomId('');
-  }, [roomId, sortedRooms]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
@@ -222,7 +238,9 @@ export default function AdminReservationsPage() {
           <FilterSelect
             id={floorId}
             value={floor === null ? '' : String(floor)}
-            onChange={(e) => setFloor(e.target.value === '' ? null : Number(e.target.value))}
+            onChange={(e) =>
+              applyRoomScope({ floor: e.target.value === '' ? null : Number(e.target.value) })
+            }
           >
             <option value="">Visi</option>
             {floors.map((f) => (
@@ -237,11 +255,13 @@ export default function AdminReservationsPage() {
           <FilterSelect
             id={sharedId}
             value={shared}
-            onChange={(e) => setShared(e.target.value as RoomSharedFilter)}
+            onChange={(e) => applyRoomScope({ shared: e.target.value as RoomSharedFilter })}
           >
-            <option value="all">Visos</option>
-            <option value="shared">Tik bendros</option>
-            <option value="private">Tik nebendros</option>
+            {SHARED_FILTER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </FilterSelect>
         </FilterGroup>
         <FilterGroup>
